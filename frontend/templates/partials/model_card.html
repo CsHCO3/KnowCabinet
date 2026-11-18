@@ -1,0 +1,43 @@
+{% if models %}
+<div class="accordion" id="modelsAccordion">
+  {% for model in models %}
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#model-{{ loop.index }}">
+        {{ model.display_name }}
+        <span class="ms-2">
+          {% if model.status == "available" %}
+            <span class="badge bg-success">🟢 可连接</span>
+          {% else %}
+            <span class="badge bg-danger">🔴 不可达</span>
+          {% endif %}
+        </span>
+      </button>
+    </h2>
+    <div id="model-{{ loop.index }}" class="accordion-collapse collapse model-collapse"
+         data-bs-parent="#modelsAccordion">
+      <div class="accordion-body">
+        <table class="table table-borderless table-sm mb-0">
+          <tr><td class="text-muted" style="width:100px">标识</td><td><code>{{ model.key }}</code></td></tr>
+          <tr><td class="text-muted">提供方</td><td>{{ model.provider }}</td></tr>
+          <tr><td class="text-muted">端点</td><td><code>{{ model.endpoint }}</code></td></tr>
+          <tr><td class="text-muted">状态</td><td>
+            {% if model.status == "available" %}
+              <span class="badge bg-success">🟢 可连接</span>
+            {% else %}
+              <span class="badge bg-danger">🔴 不可达</span>
+            {% endif %}
+          </td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center text-muted py-5">
+  <p>暂无模型配置</p>
+</div>
+{% endif %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}快速测试 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mb-4">⚡ 快速测试</h2>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <form id="search-form" hx-post="/api/arxiv/search" hx-target="#search-results" hx-indicator="#spinner">
+        <input type="hidden" name="raw_query" id="raw-query-input" value="{{ raw_query | default('') }}">
+        <input type="hidden" name="max_results" value="10">
+        <input type="hidden" name="sort_by" value="relevance">
+        <input type="hidden" name="sort_order" value="descending">
+        <input type="hidden" name="page" value="1">
+
+        <div class="input-group mb-3">
+          <input type="text" id="raw-query-display" class="form-control font-monospace"
+                 value="{{ raw_query | default('') }}"
+                 placeholder="all:&quot;transformer&quot; AND cat:cs.CL"
+                 oninput="document.getElementById('raw-query-input').value = this.value">
+          <button type="submit" class="btn btn-primary">
+            <span id="spinner" class="spinner-border spinner-border-sm d-none"></span>
+            🔍 搜索
+          </button>
+        </div>
+        <div class="form-text small text-muted">
+          直接输入 arXiv 查询表达式，或从<a href="/survey/smart">智能搜索</a>跳转过来
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="search-results">
+    <div class="text-center text-muted py-5">
+      <p>输入 raw_query 后点击搜索</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 从 URL 参数预填 raw_query
+const params = new URLSearchParams(window.location.search);
+const rq = params.get('raw_query');
+if (rq) {
+  document.getElementById('raw-query-display').value = rq;
+  document.getElementById('raw-query-input').value = rq;
+  // 自动触发搜索
+  htmx.trigger('#search-form', 'submit');
+}
+</script>
+{% endblock %}

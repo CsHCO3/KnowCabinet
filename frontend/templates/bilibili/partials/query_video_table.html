@@ -1,0 +1,89 @@
+<!-- 问答页视频选择片段 -->
+<div id="query-video-table" class="table-responsive">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <span class="text-muted small">共 {{ total }} 个已提取视频（{{ has_summary }} 个含摘要）</span>
+    <span id="selected-count" class="badge bg-primary">已选 0</span>
+  </div>
+  <table class="table table-sm table-hover align-middle" id="q-video-table">
+    <thead class="table-light">
+      <tr>
+        <th style="width:28px"><input type="checkbox" id="q-select-all" onchange="toggleQueryAll(this.checked)"></th>
+        <th style="width:95px">BVID</th>
+        <th style="width:30%">标题</th>
+        <th style="width:15%">作者</th>
+        <th style="width:65px">播放</th>
+        <th style="width:auto">摘要</th>
+        <th style="width:30px"></th>
+        <th style="width:28px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in videos %}
+      <tr>
+        <td><input type="checkbox" class="q-video-check" value="{{ v.id }}"
+                   data-title="{{ v.title }}" onchange="updateQueryBtn()"></td>
+        <td><code>{{ v.bvid }}</code></td>
+        <td class="text-truncate" style="max-width: 200px;" title="{{ v.title }}">{{ v.title }}</td>
+        <td>{{ v.author or '—' }}</td>
+        <td>{{ "{:,}".format(v.view) if v.view else '0' }}</td>
+        <td>
+          {% if v.summary_text %}
+            <span class="text-muted small" style="cursor:pointer"
+                  onclick="showSummary({{ v.id }})"
+                  id="sum-preview-{{ v.id }}"
+                  title="{{ v.summary_text[:200] }}">{{ v.summary_text[:60] }}…</span>
+            <div id="sum-full-{{ v.id }}" style="display:none">{{ v.summary_text }}</div>
+          {% elif v.summary_status == 'failed' %}
+            <span class="text-danger small">摘要失败</span>
+          {% else %}
+            <span class="text-warning small">待生成</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if v.summary_text %}
+          <button class="btn btn-sm btn-outline-info py-0" title="查看完整摘要"
+                  onclick="showSummary({{ v.id }})">📄</button>
+          {% endif %}
+        </td>
+        <td>
+          <button class="btn btn-sm btn-outline-danger py-0" title="删除"
+                  onclick="confirmQDelete({{ v.id }}, '{{ v.bvid }}')">✕</button>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" class="text-center text-muted py-4">没有已提取的视频</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+// 使用事件委托确保 HTMX 刷新后仍然生效
+document.addEventListener('change', function(e) {
+  if (e.target.classList.contains('q-video-check')) {
+    updateQueryBtn();
+  }
+});
+
+function toggleQueryAll(checked) {
+  document.querySelectorAll('.q-video-check').forEach(cb => cb.checked = checked);
+  updateQueryBtn();
+}
+
+function updateQueryBtn() {
+  const checked = document.querySelectorAll('.q-video-check:checked');
+  const ids = Array.from(checked).map(cb => parseInt(cb.value));
+  const countEl = document.getElementById('selected-count');
+  const btn = document.getElementById('query-btn');
+  const promptTextarea = document.getElementById('query-prompt');
+  if (countEl) countEl.textContent = `已选 ${ids.length}`;
+  if (btn) {
+    btn.textContent = `开始问答 (${ids.length} 个视频)`;
+    btn.disabled = ids.length === 0 || !(promptTextarea?.value.trim());
+  }
+  const idsEl = document.getElementById('selected-video-ids');
+  if (idsEl) idsEl.value = JSON.stringify(ids);
+}
+</script>

@@ -1,0 +1,58 @@
+{
+  "glm-4.6v_ocr": {
+    "name": "glm-4.6v",
+    "endpoint": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    "api_key": "ENV:GLM_API_KEY"
+  },
+  "glm-5v-turbo_ocr": {
+    "name": "glm-5v-turbo",
+    "endpoint": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    "api_key": "ENV:GLM_API_KEY"
+  },
+  "qwen-vl-max_ocr": {
+    "name": "qwen-vl-max",
+    "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "api_key": "ENV:QWEN_API_KEY"
+  },
+  "paddleocr-vl1.6_ocr": {
+    "name": "PaddleOCR-VL-1.6",
+    "endpoint": "https://paddleocr.aistudio-app.com/api/v2/ocr/jobs",
+    "api_key": "ENV:PADDLEOCR_API_KEY",
+    "job_api_type": "paddleocr"
+  },
+  "v4flash": {
+    "name": "deepseek-v4-flash",
+    "endpoint": "https://api.deepseek.com/v1/chat/completions",
+    "api_key": "ENV:DEEPSEEK_API_KEY",
+    "request_template": {
+      "model": "deepseek-v4-flash",
+      "stream": false,
+      "temperature": 0.3,
+      "max_tokens": 2000,
+      "thinking": {"type": "disabled"}
+    }
+  },
+  "glm-flash": {
+    "name": "glm-5.3-flash",
+    "endpoint": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    "api_key": "ENV:GLM_API_KEY",
+    "timeout": 240,
+    "request_template": {
+      "model": "glm-5.3-flash",
+      "stream": false,
+      "temperature": 0.3,
+      "max_tokens": 2000
+    }
+  },
+  "deepseek-chat": {
+    "name": "deepseek-chat",
+    "endpoint": "https://api.deepseek.com/v1/chat/completions",
+    "api_key": "ENV:DEEPSEEK_API_KEY",
+    "request_template": {
+      "model": "deepseek-chat",
+      "stream": false,
+      "temperature": 0.3,
+      "max_tokens": 2000
+    }
+  }
+}

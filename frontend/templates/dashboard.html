@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}InfoSystem - 仪表盘{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mb-4">👋 欢迎使用 InfoSystem</h2>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">🔍 论文调研</h5>
+          <p class="card-text text-muted small">arXiv 关键词搜索、引文分析、CCF 排名、PDF 下载一站式完成。</p>
+          <a href="/survey" class="btn btn-outline-primary btn-sm">开始调研</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">🎬 B站分析</h5>
+          <p class="card-text text-muted small">视频字幕提取、LLM 智能分析、三阶段调研流程。</p>
+          <a href="/bilibili/analyze" class="btn btn-outline-primary btn-sm">分析视频</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">📊 远程任务</h5>
+          <p class="card-text text-muted small">PDF 转换、翻译任务状态一览。</p>
+          <a href="/tasks" class="btn btn-outline-primary btn-sm">查看任务</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header"><strong>⚙️ 快捷查阅</strong></div>
+        <div class="card-body">
+          <div class="d-flex gap-2">
+            <a href="/models" class="btn btn-outline-secondary btn-sm">模型配置</a>
+            <a href="/prompts" class="btn btn-outline-secondary btn-sm">提示词库</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header"><strong>📋 远程任务</strong></div>
+        <div class="card-body">
+          <p class="card-text text-muted small mb-2">查看 PDF 转换、翻译等后台任务的实时状态。</p>
+          <a href="/tasks" class="btn btn-outline-secondary btn-sm">进入任务监控 →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}开始调研 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mb-4">🚀 开始调研</h2>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <form id="survey-form" hx-post="/api/surveys" hx-target="#survey-result" hx-indicator="#spinner">
+        <input type="hidden" name="raw_query" id="raw-query-input" value="{{ raw_query | default('') }}">
+        <input type="hidden" name="max_results" value="200">
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">arXiv 查询表达式</label>
+          <div class="input-group">
+            <input type="text" id="raw-query-display" class="form-control font-monospace"
+                   value="{{ raw_query | default('') }}"
+                   placeholder='all:"transformer" AND cat:cs.CL AND submittedDate:[20240101 TO 20240630]'
+                   oninput="document.getElementById('raw-query-input').value = this.value">
+            <button type="submit" class="btn btn-primary">
+              <span id="spinner" class="spinner-border spinner-border-sm d-none"></span>
+              🔍 开始调研
+            </button>
+          </div>
+          <div class="form-text small text-muted">
+            从<a href="/survey/smart">智能搜索</a>跳转过来，或直接在此输入
+          </div>
+        </div>
+
+        <div class="d-flex gap-4 align-items-center">
+          <div class="form-check form-switch d-flex align-items-center gap-2">
+            <input class="form-check-input" type="checkbox" name="auto_download" value="true" id="sw-download"
+                   onchange="document.getElementById('top-n').classList.toggle('d-none', !this.checked)">
+            <label class="form-check-label small text-nowrap" for="sw-download">下载 PDF</label>
+            <input type="number" name="top_n" value="15" min="1" max="200" id="top-n"
+                   class="form-control form-control-sm d-none" style="width:76px"
+                   title="下载评分最高的前 N 篇 PDF">
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="auto_convert" value="true" id="sw-convert"
+                   onchange="document.getElementById('trans-params').classList.toggle('d-none', !this.checked)">
+            <label class="form-check-label small" for="sw-convert">远程转换</label>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="auto_translate" value="true" id="sw-translate">
+            <label class="form-check-label small" for="sw-translate">标记翻译</label>
+          </div>
+        </div>
+
+        <div id="trans-params" class="row g-2 mt-2 d-none">
+          <div class="col-md-3">
+            <label class="form-label small">翻译模型</label>
+            <select name="translate_model" class="form-select form-select-sm">
+              <option value="qwen3:8b">qwen3:8b</option>
+              <option value="qwen3:7b">qwen3:7b</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small">内容类型</label>
+            <select name="content_type" class="form-select form-select-sm">
+              <option value="paper">论文</option>
+              <option value="general">通用</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small">语言检测</label>
+            <div class="form-check form-switch mt-2">
+              <input class="form-check-input" type="checkbox" name="detect_lang" value="true" checked>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 结果区：页面加载时恢复进行中的调研进度 -->
+  <div id="survey-result" hx-get="/api/surveys/active" hx-trigger="load" hx-swap="innerHTML">
+    <div class="text-center text-muted py-5">
+      <p>加载中…</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 从 URL 参数预填 raw_query
+const params = new URLSearchParams(window.location.search);
+const rq = params.get('raw_query');
+if (rq) {
+  document.getElementById('raw-query-display').value = rq;
+  document.getElementById('raw-query-input').value = rq;
+}
+</script>
+{% endblock %}

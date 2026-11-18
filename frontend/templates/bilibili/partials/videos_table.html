@@ -1,0 +1,19 @@
+{% if videos %}
+<div class="table-responsive"><table class="table table-sm align-middle small">
+  <thead><tr><th>BVID</th><th>标题</th><th>作者</th><th>播放</th><th>字幕</th><th>摘要</th></tr></thead>
+  <tbody>
+    {% for v in videos %}
+    <tr>
+      <td class="text-muted">{{ v.bvid }}</td>
+      <td><a href="https://www.bilibili.com/video/{{ v.bvid }}" target="_blank">{{ v.title or '(无标题)' }}</a></td>
+      <td>{{ v.author or '' }}</td>
+      <td>{{ v.view or 0 }}</td>
+      <td><span class="badge {{ {'none':'bg-secondary','extracting':'bg-warning text-dark','extracted':'bg-success','failed':'bg-danger'}.get(v.subtitle_status, 'bg-secondary') }}">{{ {'none':'未提取','extracting':'提取中','extracted':'已提取','failed':'失败'}.get(v.subtitle_status, v.subtitle_status) }}</span></td>
+      <td><span class="badge {{ {'none':'bg-secondary','summarized':'bg-success','failed':'bg-danger'}.get(v.summary_status, 'bg-secondary') }}">{{ {'none':'未摘要','summarized':'已摘要','failed':'失败'}.get(v.summary_status, v.summary_status) }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<div class="text-muted small py-4 text-center">暂无视频</div>
+{% endif %}

@@ -1,0 +1,114 @@
+<!-- 提取页视频列表片段（HTMX 用） -->
+<div id="extract-table" class="table-responsive">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <span class="text-muted small">共 {{ total }} 个未提取视频</span>
+  </div>
+  <table class="table table-sm table-hover align-middle" id="video-table">
+    <thead class="table-light">
+      <tr>
+        <th style="width:28px"><input type="checkbox" id="select-all" onchange="toggleAll(this)"></th>
+        <th style="width:95px">BVID</th>
+        <th style="width:30%">标题</th>
+        <th style="width:15%">作者</th>
+        <th style="width:65px">播放</th>
+        <th style="width:50px">时长</th>
+        <th style="width:60px">来源</th>
+        <th style="width:30px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for v in videos %}
+      <tr>
+        <td><input type="checkbox" class="video-check" value="{{ v.bvid }}" data-title="{{ v.title }}"></td>
+        <td><code>{{ v.bvid }}</code></td>
+        <td class="text-truncate" style="max-width: 300px;" title="{{ v.title }}">{{ v.title }}</td>
+        <td>{{ v.author }}</td>
+        <td>{{ "{:,}".format(v.view) if v.view else '0' }}</td>
+        <td>
+          {% if v.duration %}
+            {{ (v.duration // 60) }}:{{ '{:02d}'.format(v.duration % 60) }}
+          {% else %}--{% endif %}
+        </td>
+        <td><span class="badge bg-secondary">{{ v.source_type or '手动' }}</span></td>
+        <td>
+          <button class="btn btn-sm btn-outline-danger py-0"
+                  onclick="confirmDelete('{{ v.id }}', '{{ v.bvid }}')">✕</button>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" class="text-center text-muted py-4">没有未提取的视频</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if running_tasks or recent_tasks %}
+<div class="mt-2">
+  {% if running_tasks %}
+  <div class="mb-1">
+    <span class="small fw-semibold text-muted">进行中：</span>
+    {% for t in running_tasks %}
+    <div class="alert alert-info py-1 small d-flex justify-content-between align-items-center mb-1">
+      <span>提取任务 <code>{{ t.id }}</code> — {{ t.progress or '进行中...' }}</span>
+      <div>
+        <button class="btn btn-sm btn-outline-info py-0" onclick="viewTaskResult('{{ t.id }}')">查看结果</button>
+        <button class="btn btn-sm btn-outline-danger py-0" onclick="cancelTask('{{ t.id }}')">取消</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if recent_tasks %}
+  <div>
+    <span class="small fw-semibold text-muted">最近完成：</span>
+    {% for t in recent_tasks %}
+    <div class="alert alert-{{ 'success' if t.status == 'completed' else 'danger' }} py-1 small d-flex justify-content-between align-items-center mb-1">
+      <span>
+        <code>{{ t.id }}</code>
+        {% if t.status == 'completed' %}✓ 完成{% endif %}
+        {% if t.status == 'failed' %}✗ 失败{% if t.error %} — {{ t.error[:100] }}{% endif %}{% endif %}
+      </span>
+      <button class="btn btn-sm btn-outline-{{ 'success' if t.status == 'completed' else 'danger' }} py-0"
+              onclick="viewTaskResult('{{ t.id }}')">详情</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<script>
+function toggleAll(master) {
+  document.querySelectorAll('.video-check').forEach(cb => cb.checked = master.checked);
+  updateExtractBtn();
+}
+
+function updateExtractBtn() {
+  const checked = document.querySelectorAll('.video-check:checked');
+  const btn = document.getElementById('extract-btn');
+  if (btn) {
+    btn.textContent = `提取选中 (${checked.length})`;
+    btn.disabled = checked.length === 0;
+  }
+}
+
+document.querySelectorAll('.video-check').forEach(cb => {
+  cb.addEventListener('change', updateExtractBtn);
+});
+
+function confirmDelete(videoId, bvid) {
+  if (confirm(`确定删除 ${bvid}？`)) {
+    fetch(`/api/bilibili/videos/${videoId}?cleanup_files=${document.getElementById('cleanup-files')?.checked || false}`, {
+      method: 'DELETE'
+    }).then(r => r.json()).then(data => {
+      if (data.success) {
+        location.reload();
+      } else {
+        alert('删除失败: ' + (data.error || '未知错误'));
+      }
+    });
+  }
+}
+</script>

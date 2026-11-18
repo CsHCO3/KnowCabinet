@@ -1,0 +1,38 @@
+{% if tasks %}
+  <div class="list-group">
+    {% for task in tasks %}
+    <div class="list-group-item d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        <span class="fw-medium small">{{ task.filename }}</span>
+        <span>
+          {% if task.status == "running" %}
+            <span class="badge bg-warning text-dark">🟡 转换中</span>
+          {% elif task.status == "completed" %}
+            <span class="badge bg-success">✅ 已完成</span>
+          {% elif task.status == "failed" %}
+            <span class="badge bg-danger">❌ 失败</span>
+            {% if task.error %}<small class="text-danger d-block">{{ task.error }}</small>{% endif %}
+          {% else %}
+            <span class="badge bg-secondary">⏸ 排队中</span>
+          {% endif %}
+        </span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <small class="text-muted">{{ task.created_at.strftime('%m-%d %H:%M') }}</small>
+        <button class="btn btn-outline-primary btn-sm py-0 px-1"
+                onclick="showJobDetail('{{ task.id }}')"
+                title="详情">👁</button>
+        <button class="btn btn-outline-danger btn-sm py-0 px-1"
+                hx-delete="/api/tasks/{{ task.id }}"
+                hx-target="#task-list"
+                hx-swap="innerHTML"
+                hx-confirm="删除「{{ task.filename }}」？">✕</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="text-center text-muted py-5">
+    <p>暂无远程任务</p>
+  </div>
+{% endif %}

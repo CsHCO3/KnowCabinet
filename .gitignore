@@ -1,0 +1,102 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.codex/
+
+# 项目工具目录
+.claude/
+.superpowers/
+
+# 敏感配置
+.env
+.envs
+
+backend/config/model_config.json
+
+# 远端部署代码只分发 Marker 转换脚本。
+/remote_code/*
+!/remote_code/convert.py
+
+# 本地文档：整目录默认不入库，下面用 ! 逐个放行「对外文档」（新人上手需要的才放）
+/文档以及其它代码/*
+!/文档以及其它代码/00-交接说明.md
+!/文档以及其它代码/frontend-api-design.md
+!/文档以及其它代码/infosystem命令速查.md
+
+# 子目录的做法：先放行目录本身，再用 /* 把里面关回去，最后逐个放行文件。
+# 少了那行 /*，整棵子目录（含草稿、缺陷登记、旧文档）会全部变成可提交。
+!/文档以及其它代码/(4)RAG与信息整合设计/
+/文档以及其它代码/(4)RAG与信息整合设计/*
+!/文档以及其它代码/(4)RAG与信息整合设计/知识库与检索系统设计.md
+!/文档以及其它代码/(4)RAG与信息整合设计/RAG用法速查.md
+!/文档以及其它代码/(4)RAG与信息整合设计/知识库接口契约.md
+
+!/文档以及其它代码/community/
+/文档以及其它代码/community/*
+!/文档以及其它代码/community/community服务总览.md
+
+/testfuncs/
+docs/
+temp/
+
+# 运行时数据
+/data/
+/.data/
+/output/
+.playwright-mcp/
+playwright_workspace/
+
+# 模型权重（GB 级，绝不入库；本项目模型都在 .models/，这里再兜一层）
+.models/
+*.safetensors
+*.onnx
+*.gguf
+*.pt
+*.pth
+*.ckpt
+
+# Node
+node_modules/
+
+.codebuddy/
+server.log
+
+# ── 临时文件与补丁备份（不入库，但留在本地）──
+.pytest_cache/
+_handoff/
+*.bak-*
+*.bak_*
+/backend/pipelines/prompts/*_backup_*.txt
+
+# ── QQ 账号 / 群号真值（不入库，模板见同目录 export_groups.example.json）──
+/backend/services/community/qq/pipeline/export_groups.json
+
+# QQ 流水线里的一次性诊断 / 补丁脚本（_tools/clean_json.py 是运行时依赖，必须入库）
+/backend/services/community/qq/pipeline/_tools/_diag*
+/backend/services/community/qq/pipeline/_tools/_img_audit*
+/backend/services/community/qq/pipeline/_tools/_patch*
+/backend/services/community/qq/pipeline/_tools/_verify*
+/backend/services/community/qq/pipeline/_tools/_test*
+/backend/services/community/qq/pipeline/_tools/_migrate*
+
+# 论文站点登录态（旧位置兜底；2026-10-27 起统一写 data/paper_sessions/，见 session_paths.py）
+/backend/services/papers/*_session/
+/backend/services/papers/browser/*_session/
+
+# ── 知识库与检索数据（本地自有 / 可重建，不入库）──
+# 知识库本体：papers/videos/docs/web 全部是用户数据
+/knowledgebase/
+# ragsearch 引擎代码入库（backend 依赖 ragsearch.engine），仅排除构建产物索引
+/ragsearch/index/
+
+# 实验沙盒：乱改乱跑的地方，别误收进仓库（git add -A 会捡到）
+/test/

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}远程任务 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">📊 远程任务</h2>
+    <div class="d-flex gap-2">
+      <a href="/tasks/submit" class="btn btn-primary btn-sm">＋ 提交新任务</a>
+      <button class="btn btn-outline-secondary btn-sm" onclick="refreshTasks()">🔄 刷新</button>
+    </div>
+  </div>
+  <div id="task-list" hx-get="/api/tasks" hx-trigger="load, every 5s" hx-target="this">
+    <div class="skeleton" style="height: 120px;"></div>
+  </div>
+</div>
+
+<!-- 任务详情模态框 -->
+<div class="modal fade" id="jobModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">任务详情</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="jobModalBody">加载中…</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function refreshTasks() {
+  if (window.htmx) {
+    htmx.ajax('GET', '/api/tasks', {target: '#task-list', swap: 'innerHTML'});
+  } else {
+    window.location.reload();
+  }
+}
+function showJobDetail(id) {
+  const body = document.getElementById('jobModalBody');
+  body.innerHTML = '加载中…';
+  // 立即弹窗，不等网络
+  const modal = new bootstrap.Modal(document.getElementById('jobModal'));
+  modal.show();
+
+  // ① 本地记录（快）
+  fetch('/api/pdf/jobs/' + id).then(r => r.json()).then(j => {
+    if (!j.success) {
+      body.innerHTML = '<div class="text-danger">' + (j.error || '加载失败') + '</div>';
+      return;
+    }
+    const d = j.data;
+    body.innerHTML = `
+      <table class="table table-sm small align-middle">
+        <tr><th style="width:110px">Job ID</th><td>${esc(d.id)}</td></tr>
+        <tr><th>类型</th><td>${esc(d.type || 'convert')}</td></tr>
+        <tr><th>状态</th><td>${esc(d.status)}</td></tr>
+        <tr><th>提交时间</th><td>${esc(d.submitted_at || '-')}</td></tr>
+        ${d.collected_at ? `<tr><th>收集时间</th><td>${esc(d.collected_at)}</td></tr>` : ''}
+        <tr><th>远端 PID</th><td>${esc(d.remote_pid || '-')}</td></tr>
+        <tr><th>远端日志</th><td class="text-break">${esc(d.remote_log_file || '-')}</td></tr>
+        <tr><th>上传文件</th>
+          <td>${(d.uploaded_files || []).map(u => `<div class="badge bg-secondary text-start d-block mb-1">${esc(u.local)}</div>`).join('') || '-'}</td>
+        </tr>
+      </table>
+      <h6 class="small text-muted">远端日志尾</h6>
+      <div id="job-log-box"><span class="text-muted small">日志加载中…</span></div>
+    `;
+    // ② 后台补日志（SSH 可能慢，不阻塞详情）
+    fetch('/api/pdf/jobs/' + id + '/log').then(r => r.json()).then(l => {
+      const box = document.getElementById('job-log-box');
+      if (!box) return;
+      box.innerHTML = l.success && l.data && l.data.log_tail
+        ? `<pre class="bg-light p-2 rounded small" style="max-height:200px;overflow:auto">${esc(l.data.log_tail)}</pre>`
+        : '<span class="text-muted small">（无日志或 SSH 不可达）</span>';
+    }).catch(() => {
+      const box = document.getElementById('job-log-box');
+      if (box) box.innerHTML = '<span class="text-muted small">日志获取失败</span>';
+    });
+  }).catch(e => {
+    body.innerHTML = '<div class="text-danger">请求失败: ' + esc(String(e)) + '</div>';
+  });
+}
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+</script>
+{% endblock %}

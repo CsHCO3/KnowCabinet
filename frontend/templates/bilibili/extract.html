@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}B站提取 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mb-4">B站字幕提取 + 内容总结</h2>
+
+  <!-- 筛选栏 -->
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <form class="row g-2 align-items-end" hx-get="/api/bilibili/extract/list"
+            hx-target="#extract-table" hx-trigger="submit" hx-swap="outerHTML">
+        <div class="col-auto">
+          <input type="text" name="keyword" class="form-control form-control-sm" placeholder="关键词" value="{{ keyword or '' }}">
+        </div>
+        <div class="col-auto">
+          <input type="text" name="author" class="form-control form-control-sm" placeholder="作者" value="{{ author or '' }}">
+        </div>
+        <div class="col-auto">
+          <input type="number" name="view_min" class="form-control form-control-sm" placeholder="最低播放" style="width:100px">
+        </div>
+        <div class="col-auto">
+          <input type="number" name="view_max" class="form-control form-control-sm" placeholder="最高播放" style="width:100px">
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-sm btn-outline-secondary">筛选</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 操作栏 -->
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div>
+      <label class="small me-2">
+        <input type="checkbox" id="cleanup-files"> 删除时清理关联文件
+      </label>
+      <button class="btn btn-sm btn-primary" id="extract-btn" disabled
+              onclick="submitExtract()">提取选中 (0)</button>
+      <button class="btn btn-sm btn-outline-danger" id="delete-selected-btn" disabled
+              onclick="deleteSelected()">删除选中</button>
+    </div>
+    <div>
+      <button class="btn btn-sm btn-outline-info" onclick="refreshList()">刷新</button>
+      <button class="btn btn-sm btn-outline-warning" onclick="enrichAllMissing()">补全数据</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="resetStuckVideos()">重置卡住</button>
+    </div>
+  </div>
+
+  <!-- 进行中的任务 -->
+  <div id="running-tasks" class="mb-2"></div>
+
+  <!-- 视频列表 -->
+  <div id="extract-table">
+    {% include "bilibili/partials/extract_table.html" %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── 提交提取 ──
+function submitExtract() {
+  const checked = document.querySelectorAll('.video-check:checked');
+  if (checked.length === 0) return;
+
+  const bvids = Array.from(checked).map(cb => cb.value);
+
+  const btn = document.getElementById('extract-btn');
+  btn.disabled = true;
+  btn.textContent = '提交中...';
+
+  fetch('/api/bilibili/extract/submit', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ bvids }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        const taskId = data.data.task_id;
+        alert(`提取任务已提交 (ID: ${taskId})`);
+        btn.textContent = '提取选中 (0)';
+        document.querySelectorAll('.video-check').forEach(cb => cb.checked = false);
+        pollRunningTasks();
+        // 3秒后查看结果
+        setTimeout(() => viewTaskResult(taskId), 3000);
+      } else {
+        alert('提交失败: ' + (data.error || ''));
+        btn.disabled = false;
+      }
+    })
+    .catch(e => {
+      alert('提交失败: ' + e.message);
+      btn.disabled = false;
+    });
+}
+
+// ── 查看任务结果 ──
+function viewTaskResult(taskId) {
+  fetch(`/api/bilibili/extract/task/${taskId}/status`)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success || !data.data) {
+        alert('无法获取任务状态');
+        return;
+      }
+      const task = data.data;
+
+      if (task.status === 'running' || task.status === 'pending') {
+        alert(`任务进行中...\n进度: ${task.progress || '等待中'}`);
+        return;
+      }
+
+      if (task.status === 'failed') {
+        alert(`任务失败: ${task.error || '未知错误'}`);
+        refreshList();
+        return;
+      }
+
+      if (task.status === 'cancelled') {
+        alert('任务已取消');
+        refreshList();
+        return;
+      }
+
+      // completed
+      const results = task.result?.results || [];
+      let failCount = results.filter(r => r.status === 'summarize_failed' || r.status === 'failed').length;
+      let okCount = results.filter(r => r.status === 'summarized').length;
+      let msgs = [`✓ 提取并总结: ${okCount}`, failCount ? `✗ 失败: ${failCount}` : ''];
+      results.filter(r => r.error).forEach(r => {
+        msgs.push(`\n${r.bvid}: ${r.error}`);
+      });
+      alert(`提取结果:\n\n${msgs.filter(Boolean).join('\n')}`);
+      refreshList();
+    });
+}
+
+// ── 禁用选中 ──
+function deleteSelected() {
+  const checked = document.querySelectorAll('.video-check:checked');
+  if (checked.length === 0) return;
+
+  const ids = Array.from(checked).map(cb => {
+    const row = cb.closest('tr');
+    const deleteBtn = row?.querySelector('.btn-outline-danger');
+    return deleteBtn?.onclick?.toString().match(/\d+/)?.[0];
+  }).filter(Boolean);
+
+  if (!confirm(`确定删除 ${ids.length} 个视频${document.getElementById('cleanup-files').checked ? '并清理关联文件' : ''}？`)) return;
+
+  fetch('/api/bilibili/videos/batch-delete', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ video_ids: ids.map(Number), cleanup_files: document.getElementById('cleanup-files').checked }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+        refreshList();
+      } else {
+        alert('删除失败: ' + (data.error || ''));
+      }
+    });
+}
+
+// ── 轮询进行中的任务 ──
+let pollTimer = null;
+
+function pollRunningTasks() {
+  clearTimeout(pollTimer);
+
+  fetch('/api/bilibili/extract/list?limit=0')
+    .then(r => r.json())
+    .then(data => {
+      const tasks = data.running_tasks || [];
+      if (tasks.length === 0) {
+        refreshList();
+        return;
+      }
+      pollTimer = setTimeout(pollRunningTasks, 3000);
+    })
+    .catch(() => {
+      pollTimer = setTimeout(pollRunningTasks, 5000);
+    });
+}
+
+function cancelTask(taskId) {
+  fetch(`/api/bilibili/extract/task/${taskId}/cancel`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        pollRunningTasks();
+      } else {
+        alert('取消失败: ' + (data.error || ''));
+      }
+    });
+}
+
+// ── 补全缺失数据 ──
+function enrichAllMissing() {
+  // 在页面中找所有 author 为空的视频的行
+  const rows = document.querySelectorAll('#video-table tbody tr');
+  const bvids = [];
+  rows.forEach(row => {
+    const authorCell = row.cells[3];
+    if (authorCell && (!authorCell.textContent.trim() || authorCell.textContent.trim() === '—')) {
+      const bvidCell = row.cells[1];
+      if (bvidCell) {
+        const bvid = bvidCell.textContent.trim();
+        if (bvid) bvids.push(bvid);
+      }
+    }
+  });
+  if (bvids.length === 0) { alert('没有需要补全的数据'); return; }
+  if (!confirm(`发现 ${bvids.length} 个缺失数据的视频，要补全吗？`)) return;
+
+  fetch('/api/bilibili/videos/enrich-existing', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(bvids),
+  })
+    .then(r => r.json())
+    .then(data => {
+      alert(`补全完成: ${data.updated} 条成功, ${data.failed} 条失败`);
+      refreshList();
+    });
+}
+
+function refreshList() {
+  htmx.ajax('GET', '/api/bilibili/extract/list', {
+    target: '#extract-table',
+    swap: 'outerHTML',
+    values: {
+      keyword: document.querySelector('input[name="keyword"]')?.value || '',
+      author: document.querySelector('input[name="author"]')?.value || '',
+      view_min: document.querySelector('input[name="view_min"]')?.value || '',
+      view_max: document.querySelector('input[name="view_max"]')?.value || '',
+    }
+  });
+}
+
+// ── 重置卡住的视频 ──
+function resetStuckVideos() {
+  if (!confirm('将卡在 extracting 状态的视频重置为未提取状态？')) return;
+  fetch('/api/bilibili/videos/reset-stuck', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      alert(data.message || `已重置 ${data.reset} 个`);
+      refreshList();
+    });
+}
+
+// 启动轮询
+document.addEventListener('DOMContentLoaded', function() {
+  pollRunningTasks();
+});
+</script>
+{% endblock %}

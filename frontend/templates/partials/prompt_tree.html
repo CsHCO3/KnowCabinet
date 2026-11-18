@@ -1,0 +1,58 @@
+<div class="accordion" id="promptsAccordion">
+  {% if tree.files %}
+    <div class="p-2 border-bottom bg-light">
+      <span class="small text-muted fw-semibold">📂 根目录 ({{ tree.files | length }} 个文件)</span>
+    </div>
+    {% for file in tree.files %}
+      <div class="border-bottom py-1 px-3 d-flex justify-content-between align-items-center" style="min-height:28px">
+        <a href="#" hx-get="/api/prompts/{{ file.path }}"
+           hx-target="#prompt-viewer"
+           hx-trigger="click"
+           class="text-decoration-none small text-truncate me-2" style="flex-shrink:0; max-width:40%">
+          📄 {{ file.filename }}
+        </a>
+        <span class="small text-muted text-end text-truncate" style="flex:1; min-width:0"
+              title="{{ file.usage }}">
+          {{ file.usage }}
+        </span>
+      </div>
+    {% endfor %}
+  {% endif %}
+  {% for subdir in tree.subdirs recursive %}
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#dir-{{ loop.index }}-{{ subdir.dirname | replace('.','-') }}">
+        📁 {{ subdir.dirname }}/ ({{ subdir.files | length }} 个文件)
+      </button>
+    </h2>
+    <div id="dir-{{ loop.index }}-{{ subdir.dirname | replace('.','-') }}"
+         class="accordion-collapse collapse prompt-collapse"
+         data-bs-parent="#promptsAccordion">
+      <div class="accordion-body p-2">
+        {% if subdir.subdirs %}
+          <div class="accordion" id="sub-{{ loop.index }}">
+            {{ loop(subdir.subdirs) }}
+          </div>
+        {% endif %}
+        {% for file in subdir.files %}
+          <div class="border-bottom py-1 px-2 d-flex justify-content-between align-items-center" style="min-height:26px">
+            <a href="#" hx-get="/api/prompts/{{ file.path }}"
+               hx-target="#prompt-viewer"
+               hx-trigger="click"
+               class="text-decoration-none small text-truncate me-2" style="flex-shrink:0; max-width:40%">
+              📄 {{ file.filename }}
+            </a>
+            <span class="small text-muted text-end text-truncate" style="flex:1; min-width:0"
+                  title="{{ file.usage }}">
+              {{ file.usage }}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<div id="prompt-viewer" class="mt-3"></div>

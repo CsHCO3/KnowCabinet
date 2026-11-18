@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block title %}论文检索 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">🔎 多平台论文检索</h2>
+  </div>
+
+  <!-- 搜索表单 -->
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <div class="row g-2 align-items-end">
+        <div class="col">
+          <label class="small text-muted" for="ps-q">关键词</label>
+          <input type="text" id="ps-q" class="form-control form-control-sm" placeholder="如 web3 / 工业互联网标识解析">
+        </div>
+        <div class="col-auto">
+          <label class="small text-muted" for="ps-rows">每源</label>
+          <input type="number" id="ps-rows" class="form-control form-control-sm" style="width:70px" value="15" min="1" max="50">
+        </div>
+        <div class="col-auto">
+          <label class="small text-muted" for="ps-dl">最多下载 N 篇</label>
+          <input type="number" id="ps-dl" class="form-control form-control-sm" style="width:70px" value="0" min="0">
+        </div>
+        <div class="col-auto">
+          <label class="small text-muted" for="ps-inst">机构下载 N 篇</label>
+          <input type="number" id="ps-inst" class="form-control form-control-sm" style="width:70px" value="0" min="0">
+        </div>
+        <div class="col-auto">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="ps-gs">
+            <label class="form-check-label small" for="ps-gs">Google Scholar（慢，约 6s/条）</label>
+          </div>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-primary btn-sm" id="ps-submit-btn" onclick="triggerSearch()">🚀 搜索</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="loadSearches()">🔄 刷新</button>
+          <span id="ps-msg" class="small text-muted ms-1"></span>
+        </div>
+      </div>
+      <details class="mt-1">
+        <summary class="small text-muted">高级过滤（映射到 arXiv/Crossref/OpenAlex 原生语法）</summary>
+        <div class="row g-2 mt-1">
+          <div class="col-3"><input type="text" id="ps-title" class="form-control form-control-sm" placeholder="标题含"></div>
+          <div class="col-3"><input type="text" id="ps-author" class="form-control form-control-sm" placeholder="作者"></div>
+          <div class="col-2"><input type="number" id="ps-yfrom" class="form-control form-control-sm" placeholder="年≥"></div>
+          <div class="col-2"><input type="number" id="ps-yto" class="form-control form-control-sm" placeholder="年≤"></div>
+          <div class="col-2"><input type="text" id="ps-cat" class="form-control form-control-sm" placeholder="分类如 cs.CR"></div>
+        </div>
+      </details>
+      <div class="small text-muted mt-1">平台：arXiv / Crossref / OpenAlex / Google Scholar / 万方 / 知网（并行，去重合并→打分→下载源分类→入库）。「最多下载 N 篇」= 最多成功 N 篇，失败自动补位。</div>
+    </div>
+  </div>
+
+  <!-- 历史任务 -->
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">搜索历史</h5>
+  </div>
+  <div id="ps-history"><span class="text-muted small">加载中…</span></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let OPEN = new Set();
+let POLL_ACTIVE = false;
+
+async function triggerSearch() {
+  const q = document.getElementById('ps-q').value.trim();
+  if (!q) { msg('请先输入关键词'); return; }
+  const btn = document.getElementById('ps-submit-btn');
+  btn.disabled = true; msg('搜索已提交（后台运行）…');
+  const fd = new FormData();
+  fd.append('query', q);
+  fd.append('rows', document.getElementById('ps-rows').value || '15');
+  fd.append('max_download', document.getElementById('ps-dl').value || '0');
+  fd.append('inst_download', document.getElementById('ps-inst').value || '0');
+  fd.append('no_gs', document.getElementById('ps-gs').checked ? 'false' : 'true');
+  fd.append('title', document.getElementById('ps-title').value.trim());
+  fd.append('author', document.getElementById('ps-author').value.trim());
+  fd.append('year_from', document.getElementById('ps-yfrom').value || '0');
+  fd.append('year_to', document.getElementById('ps-yto').value || '0');
+  fd.append('category', document.getElementById('ps-cat').value.trim());
+  try {
+    const r = await fetch('/api/papers/search', { method: 'POST', body: fd });
+    const j = await r.json();
+    if (j.success) {
+      msg('✅ 已启动：' + (j.data && j.data.search_id || ''));
+      await loadSearches();
+      schedulePoll();
+    } else {
+      msg('失败: ' + (j.error || ''));
+    }
+  } catch (e) { msg('请求失败: ' + e); }
+  btn.disabled = false;
+}
+
+async function loadSearches() {
+  const box = document.getElementById('ps-history');
+  try {
+    const r = await fetch('/api/papers/searches');
+    const j = await r.json();
+    const list = j.searches || [];
+    if (!list.length) { box.innerHTML = '<div class="text-muted small py-4 text-center">暂无搜索记录。用上方表单发起一次多平台搜索。</div>'; return; }
+    box.innerHTML = '<div class="list-group">' + list.map(s => renderRow(s)).join('') + '</div>';
+    list.forEach(s => { if (OPEN.has(s.id)) loadDetail(s.id); });
+    if (list.some(s => s.status === 'running' || s.status === 'pending')) schedulePoll();
+  } catch (e) { box.innerHTML = '<span class="text-danger">加载失败: ' + esc(String(e)) + '</span>'; }
+}
+
+function stageBadge(st, stage) {
+  if (st === 'running') {
+    const labels = {searching:'🔍 搜索中', filtering:'筛选中', archiving:'入库中', downloading:'下载中'};
+    return `<span class="badge bg-warning text-dark">🟡 ${labels[stage] || stage || '运行中'}</span>`;
+  }
+  if (st === 'failed') return '<span class="badge bg-danger">❌ 失败</span>';
+  if (st === 'completed') return '<span class="badge bg-success">✅ 完成</span>';
+  return `<span class="badge bg-secondary">${esc(st || '?')}</span>`;
+}
+
+function renderRow(s) {
+  const src = s.per_source || {};
+  const srcTxt = Object.entries(src).map(([k, v]) => `${k}=${v}`).join(' ');
+  const per = (s.downloaded || 0) > 0 ? ` <span class="badge bg-success">下载 ${s.downloaded}</span>` : '';
+  return `
+    <div class="list-group-item">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2" style="min-width:0">
+          <span class="small text-truncate fw-semibold">${esc(s.query)}</span>
+          ${stageBadge(s.status, s.stage)}
+          <span class="badge bg-light text-dark small">${s.total} 篇</span>${per}
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+          <small class="text-muted">${esc(s.created_at || '')}</small>
+          <small class="text-muted small">${esc(srcTxt)}</small>
+          <button class="btn btn-outline-primary btn-sm py-0 px-1" onclick="toggleDetail('${esc(s.id)}', this)">${OPEN.has(s.id) ? '▲' : '▼'}</button>
+          <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="deleteSearch('${esc(s.id)}')" title="删除搜索记录（不删已下载 PDF）">🗑</button>
+        </div>
+      </div>
+      <div id="det-${esc(s.id)}" class="mt-1 small" style="display:none"><span class="text-muted">加载中…</span></div>
+    </div>`;
+}
+
+async function deleteSearch(id) {
+  if (!confirm('删除这条搜索记录？（已下载 PDF 会保留在 data/pdfs）')) return;
+  try {
+    const r = await fetch('/api/papers/searches/' + id, { method: 'DELETE' });
+    const j = await r.json();
+    msg(j.success ? '已删除记录' : (j.error || '删除失败'));
+    OPEN.delete(id);
+    loadSearches();
+  } catch (e) { msg('删除请求失败: ' + e); }
+}
+
+function toggleDetail(id, btn) {
+  const box = document.getElementById('det-' + id);
+  if (OPEN.has(id)) { OPEN.delete(id); box.style.display = 'none'; btn.textContent = '▼'; return; }
+  OPEN.add(id); box.style.display = 'block'; btn.textContent = '▲';
+  loadDetail(id);
+}
+
+async function loadDetail(id) {
+  const box = document.getElementById('det-' + id);
+  try {
+    const r = await fetch('/api/papers/searches/' + id);
+    const j = await r.json();
+    if (!j.success) { box.innerHTML = '<span class="text-danger">' + esc(j.error || '') + '</span>'; return; }
+    const d = j.data;
+    let dlHtml = '';
+    if (d.downloaded && d.downloaded.length) {
+      dlHtml = '<div class="mt-1"><b>📄 下载成功：</b>' + d.downloaded.map(x =>
+        `<div class="text-truncate">${esc(x.title || '')} → <code>${esc((x.path || '').split('/').pop().split('\\\\').pop())}</code></div>`).join('') + '</div>';
+    }
+    if (d.download_attempts && d.download_attempts.length) {
+      const failed = d.download_attempts.filter(a => a.status !== 'downloaded');
+      if (failed.length) {
+        dlHtml += '<div class="mt-1"><b>⚠ 未成功：</b>' + failed.map(a =>
+          `<div class="text-truncate text-muted">${esc(a.title || '')} → ${esc(a.status || '')} ${esc(a.reason || '')}</div>`).join('') + '</div>';
+      }
+    }
+    const results = (d.results || []).slice(0, 30);
+    let rows = results.map((x, i) => `
+      <tr>
+        <td class="text-muted">${i + 1}</td>
+        <td class="text-truncate" style="max-width:300px" title="${esc(x.title || '')}">${esc((x.title || '').slice(0, 50))}</td>
+        <td>${x.year || ''}</td>
+        <td class="text-truncate" style="max-width:140px" title="${esc(x.venue || '')}">${esc((x.venue || '').slice(0, 24))}</td>
+        <td>${x.citations || 0}</td>
+        <td>${esc((x.sources || []).join('/'))}</td>
+        <td><span class="badge ${dlBadge(x.download_source)}">${x.download_source || '—'}</span></td>
+        <td>${x.entry_id ? '<code class="small">' + esc(x.entry_id.slice(0, 20)) + '</code>' : ''}</td>
+      </tr>`).join('');
+    box.innerHTML = `
+      ${d.status === 'running' ? `<div class="mb-1">${stageBadge(d.status, d.stage)} <span class="text-muted">${esc(d.error || '')}</span></div>` : ''}
+      ${d.status === 'failed' ? `<div class="alert alert-danger py-1 mb-1">❌ ${esc(d.error || '')}</div>` : ''}
+      <div class="text-muted">每源命中: ${Object.entries(d.per_source || {}).map(([k, v]) => `${k}=${v}`).join(' | ')}</div>
+      <div class="text-muted mb-1">下载源分类: 开放 ${(d.stats || {}).open || 0} | 机构 ${(d.stats || {}).institution || 0} | 无 ${(d.stats || {}).none || 0}</div>
+      ${dlHtml}
+      <div class="table-responsive mt-1"><table class="table table-sm small">
+        <thead><tr><th>#</th><th>标题</th><th>年</th><th>venue</th><th>引</th><th>来源</th><th>下载</th><th>条目</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>`;
+  } catch (e) { box.innerHTML = '<span class="text-danger">加载失败: ' + esc(String(e)) + '</span>'; }
+}
+
+function schedulePoll() {
+  if (POLL_ACTIVE) return;
+  POLL_ACTIVE = true;
+  setTimeout(async () => {
+    POLL_ACTIVE = false;
+    try {
+      const r = await fetch('/api/papers/searches');
+      const j = await r.json();
+      const hasRunning = (j.searches || []).some(s => s.status === 'running' || s.status === 'pending');
+      await loadSearches();
+      if (hasRunning) schedulePoll();
+    } catch (e) { /* 网络抖动忽略，下次手动刷新 */ }
+  }, 5000);
+}
+
+function dlBadge(s) {
+  return {open:'bg-success', institution:'bg-warning text-dark', none:'bg-secondary'}[s] || 'bg-secondary';
+}
+function msg(s) { document.getElementById('ps-msg').textContent = s; }
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+loadSearches();
+</script>
+{% endblock %}

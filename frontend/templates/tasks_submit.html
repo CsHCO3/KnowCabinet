@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}提交远程转换 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">🚀 提交远程转换</h2>
+    <a href="/tasks" class="btn btn-outline-secondary btn-sm">← 返回任务列表</a>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <!-- 引擎选择 -->
+      <h6 class="text-muted mb-2">① 引擎（手动选，默认按文件类型推荐）</h6>
+      <div id="gpu-status-box" class="small mb-2"></div>
+      <div id="engine-cards" class="d-flex gap-2 mb-3">
+        <!-- JS 从 /api/pdf/engines 渲染 -->
+      </div>
+
+      <!-- 文件来源 -->
+      <h6 class="text-muted mb-2">② 文件来源</h6>
+      <ul class="nav nav-tabs mb-2" id="srcTab" role="tablist">
+        <li class="nav-item">
+          <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-upload" type="button">上传文件</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-existing" type="button" onclick="loadExisting()">选已有文件</button>
+        </li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-upload">
+          <input type="file" id="file-input" class="form-control" multiple onchange="onFilesPicked()">
+          <div id="upload-list" class="mt-2 small text-muted"></div>
+        </div>
+        <div class="tab-pane fade" id="tab-existing">
+          <select id="existing-select" class="form-select" multiple size="8"></select>
+          <div class="form-text">Ctrl/Shift 多选。列表来自 data/pdfs（待处理区）。</div>
+        </div>
+      </div>
+
+      <!-- 选项面板 -->
+      <h6 class="text-muted mt-3 mb-2">③ 转换选项</h6>
+      <div id="options-panel" class="row g-2">
+        <!-- JS 按引擎渲染 -->
+      </div>
+
+      <!-- 提交 -->
+      <div class="mt-3 d-flex align-items-center gap-2">
+        <button id="submit-btn" class="btn btn-primary" onclick="doSubmit()" disabled>提交转换</button>
+        <span id="submit-msg" class="small text-muted"></span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let ENGINES = [];
+let ACTIVE_ENGINE = null;
+let ENGINE_MANUAL = false; // 用户手动选过引擎后，不再被“按扩展名推荐”覆盖
+let SELECTED_FILES = [];   // upload 模式: File[]
+let SELECTED_EXISTING = []; // existing 模式: paths
+
+async function loadEngines() {
+  const r = await fetch('/api/pdf/engines');
+  const data = await r.json();
+  ENGINES = data.engines;
+  renderEngineCards();
+  renderOptions();
+  loadGpuStatus();
+}
+function renderEngineCards() {
+  const box = document.getElementById('engine-cards');
+  box.innerHTML = ENGINES.map(e => `
+    <div class="border rounded p-2 text-center engine-card" style="cursor:pointer;min-width:150px"
+         data-key="${e.key}" onclick="selectEngine('${e.key}', true)">
+      <div class="fw-semibold">${e.label}</div>
+      <small class="text-muted">${e.exts.map(x=>x.toUpperCase()).join(' ')}</small>
+    </div>`).join('');
+  if (ENGINES.length) selectEngine(ENGINES[0].key, false);
+}
+function selectEngine(key, manual) {
+  ACTIVE_ENGINE = key;
+  if (manual) ENGINE_MANUAL = true;
+  document.querySelectorAll('.engine-card').forEach(c => {
+    const on = c.dataset.key === key;
+    c.classList.toggle('border-primary', on);
+    c.classList.toggle('bg-primary-subtle', on);
+  });
+  renderOptions();
+}
+function renderOptions() {
+  const e = ENGINES.find(x => x.key === ACTIVE_ENGINE);
+  if (!e) return;
+  const html = e.options.map(o => {
+    const id = 'opt-' + o.key;
+    if (o.type === 'bool') {
+      return `<div class="col-4"><div class="form-check mt-2">
+        <input class="form-check-input opt" type="checkbox" id="${id}" data-key="${o.key}">
+        <label class="form-check-label" for="${id}">${o.label}</label></div></div>`;
+    }
+    if (o.type === 'select') {
+      return `<div class="col-4"><label class="form-label small" for="${id}">${o.label}</label>
+        <select class="form-select form-select-sm opt" id="${id}" data-key="${o.key}">
+          ${o.choices.map(c => `<option>${c}</option>`).join('')}
+        </select></div>`;
+    }
+    return `<div class="col-4"><label class="form-label small" for="${id}">${o.label}</label>
+      <input class="form-control form-control-sm opt" id="${id}" data-key="${o.key}"
+             value="${o.default || ''}" ${o.key==='backend'?'':''}></div>`;
+  }).join('');
+  document.getElementById('options-panel').innerHTML = html || '<div class="text-muted small">无额外选项</div>';
+}
+function recommendEngineByExt() {
+  if (ENGINE_MANUAL) return;  // 用户手动选过引擎，不覆盖
+  const file = SELECTED_FILES[0] || null;
+  const name = file ? file.name : (SELECTED_EXISTING[0] || '');
+  const ext = name.toLowerCase().split('.').pop();
+  if (ext === 'pdf') { selectEngine('marker', false); return; }
+  const e = ENGINES.find(x => x.exts.includes('.' + ext));
+  if (e) selectEngine(e.key, false);
+}
+
+async function loadGpuStatus() {
+  const box = document.getElementById('gpu-status-box');
+  try {
+    const r = await fetch('/api/pdf/gpu-status');
+    const j = await r.json();
+    if (!j.success) {
+      box.innerHTML = `<span class="text-danger">⚠ 远端 GPU 状态未知：${esc(j.error || '')}</span>`;
+      return;
+    }
+    const d = j.data;
+    const cls = d.ok_for_submit ? 'text-success' : 'text-danger';
+    const hint = d.ok_for_submit ? '' : '（显存不足，提交会失败；请先释放 Ollama 常驻模型）';
+    box.innerHTML = `<span class="${cls}">🖥 远端显存：空闲 ${d.free_mb}MB / 需要 ${d.required_mb}MB ${hint}</span>`;
+  } catch (e) {
+    box.innerHTML = `<span class="text-danger">⚠ GPU 状态请求失败：${esc(String(e))}</span>`;
+  }
+}
+
+// 上传模式
+function onFilesPicked() {
+  const inp = document.getElementById('file-input');
+  SELECTED_FILES = Array.from(inp.files || []);
+  SELECTED_EXISTING = [];
+  document.getElementById('existing-select').selectedIndex = -1;
+  document.getElementById('upload-list').innerHTML = SELECTED_FILES.map(f => `📄 ${f.name}`).join('<br>');
+  recommendEngineByExt();
+  updateSubmitBtn();
+}
+// 选已有模式
+async function loadExisting() {
+  const sel = document.getElementById('existing-select');
+  const r = await fetch('/api/pdf/local-files');
+  const data = await r.json();
+  sel.innerHTML = (data.files || []).map(f =>
+    `<option value="${f.path}">${f.name} (${(f.size/1024).toFixed(0)}KB)</option>`).join('')
+    || '<option disabled>目录为空</option>';
+}
+document.getElementById('existing-select').addEventListener('change', () => {
+  const sel = document.getElementById('existing-select');
+  SELECTED_EXISTING = Array.from(sel.selectedOptions).map(o => o.value);
+  SELECTED_FILES = [];
+  recommendEngineByExt();
+  updateSubmitBtn();
+});
+
+function updateSubmitBtn() {
+  document.getElementById('submit-btn').disabled = SELECTED_FILES.length === 0 && SELECTED_EXISTING.length === 0;
+}
+
+async function doSubmit() {
+  const btn = document.getElementById('submit-btn');
+  const msg = document.getElementById('submit-msg');
+  btn.disabled = true; msg.textContent = '提交中…（含 SSH 上传，稍等）';
+  const fd = new FormData();
+  fd.append('engine', ACTIVE_ENGINE);
+  const isUpload = SELECTED_FILES.length > 0;
+  fd.append('source', isUpload ? 'upload' : 'existing');
+  if (isUpload) {
+    SELECTED_FILES.forEach(f => fd.append('files', f));
+  } else {
+    fd.append('paths', SELECTED_EXISTING.join(','));
+  }
+  // 选项
+  document.querySelectorAll('.opt').forEach(el => {
+    const k = el.dataset.key;
+    if (el.type === 'checkbox') fd.append(k, el.checked ? 'true' : 'false');
+    else fd.append(k, el.value);
+  });
+  try {
+    const r = await fetch('/api/pdf/submit', { method: 'POST', body: fd });
+    const j = await r.json();
+    if (j.success) {
+      msg.textContent = `已提交，跳转列表…`;
+      window.location.href = '/tasks';
+    } else {
+      msg.textContent = '失败: ' + (j.error || '未知');
+      msg.classList.add('text-danger');
+      btn.disabled = false;
+    }
+  } catch (e) {
+    msg.textContent = '请求失败: ' + e;
+    msg.classList.add('text-danger');
+    btn.disabled = false;
+  }
+}
+
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+loadEngines();
+</script>
+{% endblock %}

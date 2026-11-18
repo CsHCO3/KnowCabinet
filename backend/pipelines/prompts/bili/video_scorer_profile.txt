@@ -1,0 +1,70 @@
+# 视频筛选用用户画像
+
+## 我的身份与处境
+
+- 计算机专业硕士研究生一年级，纯计算机实验室整体搬迁至大学材料研发中心
+- 团队无材料学背景、无往届积累、无具体合作项目——**从零探索 AI+材料交叉方向**，需要先积累能力展示再拉合作
+- 导师从事计算机网络安全方向，需逐步融入兼顾
+- 求职目标：AI 应用工程师 / 科研自动化方向，需要项目积累和系统设计能力
+- 追求的产出：可发表的论文切入点、可演示的开源软件原型、实际项目履历
+
+## 我的硬件约束
+
+- **Ubuntu 18.04 服务器**：有显卡 GPU + 公网 IP，但**无 sudo 权限**（只能用 pip install --user 或 conda）
+- **Ubuntu 22.04 服务器**：无显卡、有公网 IP、有 sudo
+- **Windows 个人电脑**：无限制，用于开发、前端、轻量任务
+- **技术栈偏好**：Python、FastAPI、Docker
+
+## 播放量≠价值
+
+- 我的研究方向小众（AI+材料交叉），冷门视频可能比热门视频更重要
+- 播放量几十万的"AI 入门"不如播放量几百的"AutoGen 踩坑实战"
+- **用户水平已在硕士阶段**，"Python 入门""什么是神经网络"等初级内容即便播放量再高也应降分
+
+## 高优先级：直接命中（9-10分区）
+
+### LLM应用开发
+AutoGen、CrewAI、LangGraph、LangChain、Function Calling、Tool Use、提示词工程、Chain-of-Thought、ReAct、多智能体协作、智能体拓扑、任务规划、工具调用、代码解释器
+
+### RAG与知识图谱
+RAG、GraphRAG、向量数据库、Chroma、Weaviate、Milvus、混合检索、知识抽取、知识图谱构建、Neo4j、LlamaIndex
+
+### AI辅助科学计算
+AI4Science、材料计算、LAMMPS、VASP、pyiron、DFT、分子动力学、科学自动化、AutoML、贝叶斯优化、LLM辅助计算
+
+### 多智能体系统
+多Agent框架、智能体通信、任务分解与分配、Swarm、协作式AI
+
+## 中优先级：间接相关（7-8分区）
+
+### 后端与基础设施
+FastAPI、Docker、PostgreSQL、pgvector、CI/CD、微服务、API设计、Python异步编程
+
+### 计算机基础
+操作系统、Linux/Ubuntu、网络编程Socket、分布式系统、数据库设计、数据结构与算法
+
+### LLM推理与部署
+vLLM、Ollama、模型量化、GPU推理优化、本地部署大模型
+
+### 科研工具链
+文献检索、PDF解析、Zotero、学术写作、LaTeX
+
+## 低优先级：做项目时参考（5-6分区）
+
+### 前端相关
+Streamlit、Gradio、简单的Web UI（快速搭demo用）
+
+### 个人效率
+笔记系统、知识管理、Obsidian
+
+## 不想要的视频（直接给0-3分）
+
+- 纯前端开发（React、Vue、CSS、HTML 教程）
+- 移动端开发（iOS、Android、Flutter、React Native）
+- 游戏开发（Unity、Unreal）
+- 嵌入式/硬件/IoT
+- 纯数学/纯物理理论（没有计算部分）
+- 考证/考公/考研培训
+- 区块链/Web3/加密货币
+- "教你用 ChatGPT 赚钱"、"AI 副业"
+- 娱乐、生活vlog、美食、旅游

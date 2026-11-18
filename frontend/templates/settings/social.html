@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}社交账号 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mb-4">社交平台账户凭证</h2>
+
+  <!-- B站 -->
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><strong>Bilibili</strong></span>
+      <span id="bili-status-badge" class="badge bg-secondary">检测中...</span>
+    </div>
+    <div class="card-body">
+      <!-- 三个字段输入 -->
+      <div class="mb-2">
+        <label class="form-label small">SESSDATA</label>
+        <input type="text" id="field-sessdata" class="form-control form-control-sm font-monospace"
+               placeholder="e11c4dcc%2C1797592337%2C...">
+      </div>
+      <div class="mb-2">
+        <label class="form-label small">bili_jct</label>
+        <input type="text" id="field-bili-jct" class="form-control form-control-sm font-monospace"
+               placeholder="7a7a1dbd0450e795e06504d809b9808b">
+      </div>
+      <div class="mb-3">
+        <label class="form-label small">DedeUserID</label>
+        <input type="text" id="field-dedeuserid" class="form-control form-control-sm font-monospace"
+               placeholder="103279774">
+      </div>
+
+      <!-- 测试结果 -->
+      <div id="bili-test-result" class="mb-2 small"></div>
+
+      <!-- 操作按钮 -->
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm" onclick="updateBili()">更新并测试</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="testBili()">仅测试</button>
+        <button class="btn btn-outline-danger btn-sm" onclick="clearBili()">清除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 论文平台 · 机构网络 -->
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><strong>论文平台 · 机构网络</strong></span>
+      <span>
+        <button id="paper-test-btn" class="btn btn-outline-primary btn-sm" onclick="testPapers()">🔍 重新检测全部</button>
+      </span>
+    </div>
+    <div class="card-body">
+      <div id="paper-network" class="small mb-2 text-muted">检测中…</div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle small mb-0">
+          <thead>
+            <tr><th style="width:150px">平台</th><th style="width:70px">类型</th><th style="width:110px">登录态</th><th>说明</th></tr>
+          </thead>
+          <tbody id="paper-platforms"></tbody>
+        </table>
+      </div>
+      <div id="paper-test-msg" class="small text-muted mt-2"></div>
+      <div class="small text-muted border-top pt-1 mt-1">
+        页面加载只看本地 cookie 文件/端口，<b>不搜库</b>；「重新检测全部」才对知网/万方各发一次最小搜索（1 条）、GS 走代理探测，其余 API 只测连通。
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function loadStatus() {
+  fetch('/api/settings/social/bilibili')
+    .then(r => r.json())
+    .then(data => {
+      const badge = document.getElementById('bili-status-badge');
+      badge.className = `badge ${data.configured ? 'bg-success' : 'bg-secondary'}`;
+      badge.textContent = data.summary;
+
+      // 填入掩码值
+      (data.fields || []).forEach(f => {
+        const inputId = {
+          'bili_cookie_sessdata': 'field-sessdata',
+          'bili_cookie_bili_jct': 'field-bili-jct',
+          'bili_cookie_dedeuserid': 'field-dedeuserid',
+        }[f.key];
+        if (inputId && f.set) {
+          document.getElementById(inputId).placeholder = f.masked;
+        }
+      });
+    })
+    .catch(() => {
+      document.getElementById('bili-status-badge').textContent = '加载失败';
+    });
+}
+
+function testBili() {
+  const resultEl = document.getElementById('bili-test-result');
+  resultEl.innerHTML = '<span class="text-muted">测试中...</span>';
+
+  fetch('/api/settings/social/bilibili/test', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      resultEl.innerHTML = data.ok
+        ? `<span class="text-success">✓ 有效 — ${data.uname} (mid: ${data.mid})</span>`
+        : `<span class="text-danger">✗ ${data.error}</span>`;
+    })
+    .catch(e => {
+      resultEl.innerHTML = `<span class="text-danger">✗ 请求失败: ${e.message}</span>`;
+    });
+}
+
+function updateBili() {
+  const payload = {};
+  const ids = { sessdata: 'field-sessdata', bili_jct: 'field-bili-jct', dedeuserid: 'field-dedeuserid' };
+  let hasValue = false;
+
+  for (const [key, inputId] of Object.entries(ids)) {
+    const val = document.getElementById(inputId).value.trim();
+    if (val) {
+      payload[key] = val;
+      hasValue = true;
+    }
+  }
+
+  if (!hasValue) {
+    alert('至少填写一个字段');
+    return;
+  }
+
+  const resultEl = document.getElementById('bili-test-result');
+  resultEl.innerHTML = '<span class="text-muted">更新中...</span>';
+
+  fetch('/api/settings/social/bilibili', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) {
+        resultEl.innerHTML = `<span class="text-danger">✗ ${data.error}</span>`;
+        return;
+      }
+      const test = data.test;
+      if (test && test.ok) {
+        resultEl.innerHTML = `<span class="text-success">✓ 已更新，测试通过 — ${test.uname}</span>`;
+      } else {
+        resultEl.innerHTML = `<span class="text-warning">⚠ 已保存，但测试失败: ${test ? test.error : '未知'}</span>`;
+      }
+      loadStatus();
+    })
+    .catch(e => {
+      resultEl.innerHTML = `<span class="text-danger">✗ ${e.message}</span>`;
+    });
+}
+
+function clearBili() {
+  if (!confirm('确定清除 B站 Cookie？')) return;
+
+  fetch('/api/settings/social/bilibili', { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        ['field-sessdata', 'field-bili-jct', 'field-dedeuserid'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
+        document.getElementById('bili-test-result').innerHTML = '';
+        loadStatus();
+      }
+    });
+}
+
+/* ── 论文平台 · 机构网络 ── */
+
+function loadPapersStatus() {
+  fetch('/api/settings/social/papers/status')
+    .then(r => r.json())
+    .then(j => { renderPaperNetwork(j.network); renderPaperPlatforms(j.platforms); })
+    .catch(() => {
+      document.getElementById('paper-network').textContent = '加载失败';
+    });
+}
+
+function renderPaperNetwork(net) {
+  const el = document.getElementById('paper-network');
+  if (!net) { el.textContent = '—'; return; }
+  const chips = [];
+  if (net.clash) chips.push('<span class="badge bg-success">Clash 在线</span>');
+  else chips.push('<span class="badge bg-secondary">Clash 离线</span>');
+  if (net.wssocks_tunnel) chips.push('<span class="badge bg-success">wssocks 隧道在线</span>');
+  else chips.push('<span class="badge bg-secondary">wssocks 隧道离线</span>');
+  chips.push(`<span class="badge bg-light border text-muted">机构路由: ${net.institution_route === 'tunnel' ? '隧道(校园IP)' : '直连(假定校园网)'}</span>`);
+  if (net.direct_ip) {
+    chips.push(net.campus
+      ? `<span class="badge bg-success">直连IP ${net.direct_ip}（校园）</span>`
+      : `<span class="badge bg-warning text-dark">直连IP ${net.direct_ip}（非校园）</span>`);
+  }
+  el.innerHTML = '<div class="d-flex gap-1 flex-wrap align-items-center">' + chips.join('') + '</div>';
+}
+
+function renderPaperPlatforms(platforms) {
+  const tbody = document.getElementById('paper-platforms');
+  const badgeMap = {
+    ok: ['bg-success', '✅ 正常'],
+    fail: ['bg-danger', '❌ 异常'],
+    warn: ['bg-warning text-dark', '⚠ 未检测'],
+    none: ['bg-secondary', '— 未配置'],
+  };
+  tbody.innerHTML = (platforms || []).map(p => {
+    const [cls, txt] = badgeMap[p.status] || ['bg-secondary', p.status];
+    const kindLabel = { cookie: 'Cookie', ip: 'IP/代理', api: 'API' }[p.kind] || p.kind;
+    const note = p.note || p.needs || '';
+    return `<tr>
+      <td class="text-nowrap"><strong>${esc(p.name)}</strong></td>
+      <td><span class="badge bg-light text-muted border">${kindLabel}</span></td>
+      <td><span class="badge ${cls}">${txt}</span></td>
+      <td class="text-muted" style="max-width:440px">${esc(note)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" class="text-muted">无数据</td></tr>';
+}
+
+function testPapers() {
+  const btn = document.getElementById('paper-test-btn');
+  const msg = document.getElementById('paper-test-msg');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '检测中…';
+  msg.textContent = '正在对全部平台做真实探测（知网/万方会发一次搜索、GS 走代理）…';
+  fetch('/api/settings/social/papers/test?force=1', { method: 'POST' })
+    .then(r => r.json())
+    .then(j => {
+      msg.textContent = j.too_recent ? '检测完成（缓存结果）' : '✅ 检测完成';
+      loadPapersStatus();
+    })
+    .catch(e => { msg.textContent = '检测失败: ' + e; })
+    .finally(() => { btn.disabled = false; btn.textContent = orig; });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadStatus();
+  loadPapersStatus();
+});
+</script>
+{% endblock %}

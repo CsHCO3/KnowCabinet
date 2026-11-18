@@ -1,0 +1,28 @@
+{
+  "_comment": "export.py 的每群导出参数模板。复制成同目录 export_groups.json 再改；真值里含 QQ 号与群号，已被 .gitignore 排除，不要入库。",
+  "_anchors": {
+    "qce_root": "QQ Chat Exporter 安装目录（里面有 launcher-user.bat / config / logs）",
+    "overlap_minutes": "从上次结束时间往前多导一点，靠 archive.py 的时间轴去重吃掉重叠部分，防止边界漏消息",
+    "qq_uin": "掉线时用 NapCat 快速登录要用的账号（必须在 NapCat 的快速登录列表里）"
+  },
+  "qce_root": "D:\\QQChatExporter",
+  "qce_port": 40653,
+  "napcat_port": 6099,
+  "qq_uin": "<你的QQ号>",
+  "launcher": "D:\\QQChatExporter\\launcher-user.bat",
+  "overlap_minutes": 10,
+  "task_timeout_seconds": 1800,
+  "groups": [
+    {
+      "group": "示例群",
+      "peer_uid": "000000000",
+      "session_name": "示例群",
+      "note": "示例条目：options 就是 QCE 界面勾的那几个字段",
+      "options": {
+        "filterPureImageMessages": true,
+        "skipDownloadResourceTypes": ["image", "video", "audio", "file"],
+        "preferGroupMemberName": true
+      }
+    }
+  ]
+}

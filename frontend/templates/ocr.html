@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}OCR 识别 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">🔍 图片文字识别（OCR）</h2>
+  </div>
+
+  <div class="row g-3">
+    <!-- 左：提交表单 -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-body">
+          <div class="alert alert-info py-2 small mb-3">生成新文件 <code>{md名}_ocr.md</code>（<b>保留原文件</b>），把识别文字插回图片引用下方；默认剔除末尾 References/参考文献 段。</div>
+
+          <h6 class="text-muted">① 模型</h6>
+          <select id="ocr-model" class="form-select form-select-sm mb-3">
+            <option value="qwen-vl-max_ocr">qwen-vl-max_ocr（推荐）</option>
+            <option value="glm-4.6v_ocr">glm-4.6v_ocr</option>
+            <option value="paddleocr-vl1.6_ocr">paddleocr-vl1.6_ocr</option>
+          </select>
+
+          <h6 class="text-muted">② 文件来源</h6>
+          <div class="form-check mb-1">
+            <input class="form-check-input" type="checkbox" id="ocr-dir-opt" onchange="toggleDirInput()">
+            <label class="form-check-label small" for="ocr-dir-opt">处理整个目录</label>
+          </div>
+          <input type="text" id="ocr-dir" class="form-control form-control-sm mb-2" placeholder="目录路径（如 data/ocr_docs）" disabled>
+          <div id="ocr-md-list" class="small">
+            <span class="text-muted">加载 .md 文件列表…</span>
+          </div>
+
+          <h6 class="text-muted mt-3">③ 选项</h6>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="ocr-parallel" checked>
+            <label class="form-check-label small" for="ocr-parallel">并行识别</label>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="ocr-retry">
+            <label class="form-check-label small" for="ocr-retry">跳过已有结果（retry）</label>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="ocr-strip-refs" checked>
+            <label class="form-check-label small" for="ocr-strip-refs">去除末尾 References/参考文献 段</label>
+          </div>
+          <div class="d-flex align-items-center gap-2 mt-2">
+            <label class="small text-muted text-nowrap" for="ocr-min-size">跳过小于</label>
+            <input type="number" id="ocr-min-size" class="form-control form-control-sm" style="width:76px" value="7" min="0">
+            <span class="small text-muted">KB 的图片（装饰图/头像/二维码）</span>
+          </div>
+
+          <div class="d-flex align-items-center gap-2 mt-3">
+            <button class="btn btn-primary btn-sm" id="ocr-submit-btn" onclick="submitOcr()">提交 OCR</button>
+            <span id="ocr-submit-msg" class="small text-muted"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右：任务列表 -->
+    <div class="col-lg-8">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">OCR 任务</h5>
+        <button class="btn btn-outline-secondary btn-sm" onclick="loadTasks()">🔄 刷新</button>
+      </div>
+      <div id="ocr-task-list"><span class="text-muted small">加载中…</span></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let SELECTED = new Set();
+let POLL_IDS = new Set();
+
+async function loadMds() {
+  const box = document.getElementById('ocr-md-list');
+  try {
+    const r = await fetch('/api/ocr/local-mds');
+    const j = await r.json();
+    const files = j.files || [];
+    if (!files.length) {
+      box.innerHTML = '<span class="text-muted">目录为空。在 <code>data/ocr_docs/</code> 放 .md，或勾选"处理整个目录"填路径。</span>';
+      return;
+    }
+    box.innerHTML = files.map(f => `
+      <div class="form-check">
+        <input class="form-check-input ocr-md" type="checkbox" value="${esc(f.path)}" data-path="${esc(f.path)}">
+        <label class="form-check-label">${esc(f.name)}</label>
+      </div>`).join('');
+    box.querySelectorAll('.ocr-md').forEach(el => {
+      el.addEventListener('change', () => {
+        const path = el.dataset.path;
+        if (el.checked) SELECTED.add(path); else SELECTED.delete(path);
+      });
+    });
+  } catch (e) {
+    box.innerHTML = '<span class="text-danger">加载失败: ' + esc(String(e)) + '</span>';
+  }
+}
+function toggleDirInput() {
+  const opt = document.getElementById('ocr-dir-opt').checked;
+  document.getElementById('ocr-dir').disabled = !opt;
+}
+
+async function submitOcr() {
+  const btn = document.getElementById('ocr-submit-btn');
+  const msg = document.getElementById('ocr-submit-msg');
+  const dir = document.getElementById('ocr-dir-opt').checked ? document.getElementById('ocr-dir').value.trim() : '';
+  if (!SELECTED.size && !dir) { msg.textContent = '请至少选一个文件或填目录'; return; }
+  btn.disabled = true; msg.textContent = '提交中…';
+  const fd = new FormData();
+  fd.append('files', Array.from(SELECTED).join(','));
+  if (dir) fd.append('dir', dir);
+  fd.append('model', document.getElementById('ocr-model').value);
+  fd.append('parallel', document.getElementById('ocr-parallel').checked ? 'true' : 'false');
+  fd.append('retry', document.getElementById('ocr-retry').checked ? 'true' : 'false');
+  fd.append('strip_refs', document.getElementById('ocr-strip-refs').checked ? 'true' : 'false');
+  fd.append('min_size_kb', document.getElementById('ocr-min-size').value || '7');
+  try {
+    const r = await fetch('/api/ocr/submit', { method: 'POST', body: fd });
+    const j = await r.json();
+    if (j.success) {
+      msg.textContent = '已提交';
+      SELECTED.clear();
+      loadMds();
+      await loadTasks();
+    } else {
+      msg.textContent = '失败: ' + (j.error || '');
+    }
+  } catch (e) { msg.textContent = '请求失败: ' + e; }
+  btn.disabled = false;
+}
+
+async function loadTasks() {
+  const box = document.getElementById('ocr-task-list');
+  try {
+    const r = await fetch('/api/ocr/tasks');
+    const j = await r.json();
+    const tasks = j.tasks || [];
+    if (!tasks.length) { box.innerHTML = '<div class="text-muted small py-4 text-center">暂无 OCR 任务</div>'; return; }
+    box.innerHTML = '<div class="list-group">' + tasks.map(t => renderTaskRow(t)).join('') + '</div>';
+    // 自动轮询 active 任务
+    tasks.forEach(t => {
+      if (t.status === 'running' || t.status === 'pending') schedulePoll(t.id);
+    });
+  } catch (e) { box.innerHTML = '<span class="text-danger">加载失败: ' + esc(String(e)) + '</span>'; }
+}
+
+function renderTaskRow(t) {
+  const badge = {running:'🟡 运行中', pending:'⏸ 排队', completed:'✅ 完成', failed:'❌ 失败', cancelled:'🚫 取消'}[t.status] || t.status;
+  const cls = {running:'bg-warning text-dark', pending:'bg-secondary', completed:'bg-success', failed:'bg-danger', cancelled:'bg-secondary'}[t.status] || 'bg-secondary';
+  const detail = t.result ? `（${t.result.total||0} 图 → ${t.result.success||0} 成功 / ${t.result.failed||0} 失败 / ${t.result.skipped||0} 跳过）` : (t.error ? `<span class="text-danger">${esc(t.error)}</span>` : '');
+  return `
+    <div class="list-group-item d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge ${cls}">${badge}</span>
+        <span class="small text-muted">${esc(t.id)}</span>
+        ${t.progress ? `<span class="small">${esc(t.progress)}</span>` : ''}
+        ${detail}
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <small class="text-muted">${(t.created_at || '').slice(5, 16)}</small>
+        <button class="btn btn-outline-primary btn-sm py-0 px-1" onclick="showOcrDetail('${esc(t.id)}')">👁</button>
+        ${(t.status === 'running' || t.status === 'pending') ? `<button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="cancelOcr('${esc(t.id)}')">✕</button>` : ''}
+      </div>
+    </div>`;
+}
+
+async function showOcrDetail(id) {
+  const r = await fetch('/api/ocr/task/' + id + '/status');
+  const j = await r.json();
+  if (!j.success) { alert(j.error); return; }
+  const s = j.data;
+  const results = (s.result && s.result.results) || [];
+  let html = '<table class="table table-sm small align-middle"><tr><th>文件</th><th>结果</th><th>成功/失败/跳过</th><th>输出</th></tr>';
+  for (const res of results) {
+    const err = res.error ? `<span class="text-danger">（${esc(res.error)}）</span>` : '';
+    const warn = res.warn_same_dir ? ' <span class="badge bg-warning text-dark">⚠ 图片与md同目录</span>' : '';
+    html += `<tr><td>${esc(res.file)}</td><td>${res.total} 图 ${warn}</td><td>${res.success}/${res.failed}/${res.skipped} ${err}</td><td class="text-break">${esc(res.output || '-')}</td></tr>`;
+  }
+  html += '</table>';
+  if (!results.length) html = '<div class="text-muted small">' + (s.error ? '任务失败: ' + esc(s.error) : '无逐文件数据') + '</div>';
+  html += '<pre class="bg-light p-2 rounded small" style="max-height:200px;overflow:auto">' + esc(s.progress || '') + '</pre>';
+  showModal('OCR 任务详情', html);
+}
+
+function cancelOcr(id) {
+  fetch('/api/ocr/task/' + id + '/cancel', { method: 'POST' }).then(loadTasks);
+}
+
+function schedulePoll(id) {
+  if (POLL_IDS.has(id)) return;
+  POLL_IDS.add(id);
+  setTimeout(async () => {
+    POLL_IDS.delete(id);
+    const r = await fetch('/api/ocr/task/' + id + '/status');
+    const j = await r.json();
+    if (j.success && (j.data.status === 'running' || j.data.status === 'pending')) {
+      loadTasks();
+      schedulePoll(id);
+    } else {
+      loadTasks();
+    }
+  }, 2500);
+}
+
+function showModal(title, body) {
+  let m = document.getElementById('ocrModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'ocrModal';
+    m.className = 'modal fade';
+    m.innerHTML = `<div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body"></div></div></div>`;
+    document.body.appendChild(m);
+  }
+  m.querySelector('.modal-title').textContent = title;
+  m.querySelector('.modal-body').innerHTML = body;
+  new bootstrap.Modal(m).show();
+}
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+loadMds();
+loadTasks();
+</script>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% if favorites %}
+  <select class="form-select" size="5">
+    {% for fav in favorites %}
+      <option value="{{ fav.id }}">{{ fav.title }} ({{ fav.media_count }} 个视频)</option>
+    {% endfor %}
+  </select>
+{% else %}
+  <p class="text-muted small">暂无收藏夹数据</p>
+{% endif %}

@@ -1,0 +1,55 @@
+# conda create -n infosystem python=3.12 -y
+# conda activate infosystem
+# 1) GPU torch（先装，避免后面 requirements 拉到 CPU 版）
+# python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
+# 2) infosystem 依赖（刚更新的 requirements.txt）
+# python -m pip install -r D:/infosystem/requirements.txt
+# 3) 检索/向量依赖：jieba / rank-bm25 / numpy / sqlite-vec / faiss-cpu 已列在下面；
+#    只剩 bge 模型加载器要单独装
+# python -m pip install FlagEmbedding
+# 4) 验证
+# cd D:/infosystem && python -m backend.main --help
+
+
+# infosystem 依赖清单（2026-08-10 由 import 扫描 + 系统环境核对生成，替换过时版本）
+# 生成依据：扫描 infosystem 全部 .py 的顶层 import（76 个），筛掉 stdlib / 本地模块 /
+#           旧代码(/文档以及其它代码/旧版代码) / lab 远程代码(/remote_code，marker 在服务器跑)
+# 版本下限取自当前系统 Python 中已验证可用的版本。
+
+# --- Web / 服务层（原 requirements.txt）---
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+jinja2>=3.1.0
+pydantic>=2.0
+python-multipart>=0.0.9
+
+# --- 实际 import 到的第三方库 ---
+requests>=2.31
+python-dotenv>=1.0
+pydantic-settings>=2.0
+aiohttp>=3.9
+urllib3>=2.0
+PySocks>=1.7
+browser-cookie3>=0.19
+paramiko>=3.0
+scp>=0.14
+pypdf>=6.0
+pypdfium2>=5.0
+PyPDF4>=1.27
+scholarly>=1.7
+playwright>=1.40
+beautifulsoup4>=4.12
+mcp>=1.0
+fastapi-sso>=0.21
+
+# --- 深度学习（GPU）---
+# torch/torchvision 需从 PyTorch 官方索引装 CUDA 版，勿用 PyPI 的 CPU 版：
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
+# 当前环境已在 playwright/.venv 装好 torch 2.13.0+cu130
+torch>=2.0
+torchvision>=0.15
+
+# --- 说明：以下未列入（扫描确认为非本地活跃依赖）---
+#   biliextract —— 仅旧代码(4.25重构前)使用
+#   marker       —— 仅 lab 远程代码(remote_code/)使用，服务器上装
+#   fastapi-sso 已在列表中（系统环境里有，供 web 登录用）

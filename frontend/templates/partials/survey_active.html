@@ -1,0 +1,12 @@
+{% if tasks %}
+  {% for task in tasks[:1] %}
+    {% include "partials/survey_pipeline.html" %}
+  {% endfor %}
+  {% if tasks|length > 1 %}
+    <div class="text-muted small mt-2">还有 {{ tasks|length - 1 }} 个进行中的调研…</div>
+  {% endif %}
+{% else %}
+  <div class="text-center text-muted py-5">
+    <p>填写 raw_query 后点击"开始调研"</p>
+  </div>
+{% endif %}

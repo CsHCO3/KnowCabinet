@@ -1,0 +1,16 @@
+{
+  "_说明": "本地 LLM 调用配置。api_key 支持 ENV:变量名（会回退到 .env 文件），也可以直接填明文。",
+
+  "default": "deepseek-chat",
+  "models": {
+    "deepseek-chat": {
+      "endpoint": "https://api.deepseek.com/v1/chat/completions",
+      "api_key": "ENV:DEEPSEEK_API_KEY",
+      "model": "deepseek-chat",
+      "temperature": 0.2,
+      "max_tokens": 2500,
+      "timeout": 300,
+      "max_retries": 3
+    }
+  }
+}

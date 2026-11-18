@@ -1,0 +1,10 @@
+#!/bin/sh
+# 提交前卫生检查：本地数据 / 模型 / 登录态 / 账号真值不许进仓库。
+# 安装：git config core.hooksPath .githooks
+# 跳过：git commit --no-verify（不推荐，跳过会留下审计缺口）
+root=$(git rev-parse --show-toplevel) || exit 1
+py=$(command -v python || command -v python3) || {
+    echo "✗ 找不到 python，无法做提交前检查" >&2
+    exit 1
+}
+exec "$py" "$root/scripts/check_staging.py"

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}提示词库 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">📝 提示词库</h2>
+    <div>
+      <button class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('.prompt-collapse').forEach(el => el.classList.add('show'))">全部展开</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="document.querySelectorAll('.prompt-collapse').forEach(el => el.classList.remove('show'))">全部收起</button>
+    </div>
+  </div>
+  <div hx-get="/api/prompts" hx-trigger="load" hx-target="this">
+    <div class="skeleton" style="height: 200px;"></div>
+  </div>
+</div>
+{% endblock %}

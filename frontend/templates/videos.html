@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}视频管理 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">🎬 视频管理</h2>
+  </div>
+
+  <!-- 状态概览 -->
+  <div id="videos-overview" class="mb-2"></div>
+
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <div class="row g-2 align-items-end">
+        <div class="col">
+          <label class="small text-muted" for="v-keyword">关键词</label>
+          <input type="text" id="v-keyword" class="form-control form-control-sm" placeholder="标题/作者/简介">
+        </div>
+        <div class="col-2">
+          <label class="small text-muted" for="v-author">作者</label>
+          <input type="text" id="v-author" class="form-control form-control-sm">
+        </div>
+        <div class="col-2">
+          <label class="small text-muted" for="v-sub">字幕状态</label>
+          <select id="v-sub" class="form-select form-select-sm">
+            <option value="">不限</option>
+            <option value="none">未提取</option>
+            <option value="extracted">已提取</option>
+            <option value="failed">失败</option>
+          </select>
+        </div>
+        <div class="col-2">
+          <label class="small text-muted" for="v-sum">摘要状态</label>
+          <select id="v-sum" class="form-select form-select-sm">
+            <option value="">不限</option>
+            <option value="summarized">已摘要</option>
+            <option value="failed">失败</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-outline-secondary btn-sm" onclick="loadVideos()">🔍 筛选</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="loadVideos()">🔄 刷新</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex align-items-center gap-2 mb-2">
+    <button class="btn btn-primary btn-sm" onclick="extractSelected()">⬇️ 提取字幕+摘要（选中）</button>
+    <button class="btn btn-danger btn-sm" onclick="deleteSelected()">🗑 批量删除（选中）</button>
+    <span id="v-msg" class="small text-muted"></span>
+  </div>
+
+  <div id="videos-table"><span class="text-muted small">加载中…</span></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let SELECTED = new Set();
+let POLL_IDS = new Set();
+
+async function loadOverview() {
+  try {
+    const r = await fetch('/api/bilibili/videos/overview');
+    const o = await r.json();
+    const html = `
+      <div class="d-flex gap-3 small mb-1">
+        <span class="badge bg-secondary">共 ${o.total} 个视频</span>
+        <span class="badge bg-light text-dark">字幕已提取 ${o.subtitle.extracted || 0}</span>
+        <span class="badge bg-warning text-dark">字幕提取中 ${o.subtitle.extracting || 0}</span>
+        <span class="badge bg-danger">字幕失败 ${o.subtitle.failed || 0}</span>
+        <span class="badge bg-success">已生成摘要 ${o.summary.summarized || 0}</span>
+        <span class="badge bg-danger">摘要失败 ${o.summary.failed || 0}</span>
+      </div>`;
+    document.getElementById('videos-overview').innerHTML = html;
+  } catch (e) {}
+}
+
+async function loadVideos() {
+  const box = document.getElementById('videos-table');
+  const kw = document.getElementById('v-keyword').value.trim();
+  const au = document.getElementById('v-author').value.trim();
+  const sub = document.getElementById('v-sub').value;
+  const sum = document.getElementById('v-sum').value;
+  let url = '/api/bilibili/videos?limit=500';
+  if (kw) url += '&keyword=' + encodeURIComponent(kw);
+  if (au) url += '&author=' + encodeURIComponent(au);
+  if (sub) url += '&subtitle_status=' + sub;
+  if (sum) url += '&summary_status=' + sum;
+  try {
+    const r = await fetch(url);
+    const j = await r.json();
+    const videos = j.videos || [];
+    if (!videos.length) { box.innerHTML = '<div class="text-muted small py-4 text-center">暂无视频。<br>去「采集」页收集，或 CLI：<code>python -m backend.main video-import --bvids "BVxxx,BVyyy"</code><br>（自动 采集→提取字幕→摘要→晋升知识库）</div>'; loadOverview(); return; }
+    box.innerHTML = `
+      <div class="table-responsive"><table class="table table-sm align-middle small">
+        <thead><tr>
+          <th><input type="checkbox" onchange="toggleAll(this)"></th>
+          <th>BVID</th><th>标题</th><th>作者</th><th>播放</th><th>字幕</th><th>摘要</th>
+        </tr></thead>
+        <tbody>${videos.map(renderRow).join('')}</tbody>
+      </table></div>`;
+    videos.forEach(v => { if (SELECTED.has(v.id)) checkRow(v.id); });
+    loadOverview();
+  } catch (e) { box.innerHTML = '<span class="text-danger">加载失败: ' + esc(String(e)) + '</span>'; }
+}
+
+function renderRow(v) {
+  const subBadge = {none:'bg-secondary 未提取', extracting:'bg-warning text-dark 提取中', extracted:'bg-success 已提取', failed:'bg-danger 失败'}[v.subtitle_status] || 'bg-secondary';
+  const sumBadge = {none:'bg-secondary 未摘要', summarized:'bg-success 已摘要', failed:'bg-danger 失败'}[v.summary_status] || 'bg-secondary';
+  const [sb, st] = subBadge.split(' ');
+  const [mb, mt] = sumBadge.split(' ');
+  return `
+    <tr>
+      <td><input type="checkbox" class="v-check" value="${v.id}" onchange="toggleRow(${v.id}, this)"></td>
+      <td class="text-muted">${esc(v.bvid)}</td>
+      <td><a href="https://www.bilibili.com/video/${esc(v.bvid)}" target="_blank">${esc(v.title || '(无标题)')}</a></td>
+      <td>${esc(v.author || '')}</td>
+      <td>${(v.view || 0).toLocaleString()}</td>
+      <td><span class="badge ${sb}">${st}</span></td>
+      <td><span class="badge ${mb}">${mt}</span></td>
+    </tr>`;
+}
+
+function toggleAll(cb) {
+  document.querySelectorAll('.v-check').forEach(c => { c.checked = cb.checked; toggleRow(parseInt(c.value), c); });
+}
+function toggleRow(id, cb) {
+  if (cb.checked) SELECTED.add(id); else SELECTED.delete(id);
+  document.getElementById('v-msg').textContent = `已选 ${SELECTED.size} 个`;
+}
+function checkRow(id) {
+  const cb = document.querySelector(`.v-check[value="${id}"]`);
+  if (cb) cb.checked = true;
+}
+
+async function extractSelected() {
+  if (!SELECTED.size) { msg('请先勾选视频'); return; }
+  msg('提交提取任务…');
+  const r = await fetch('/api/bilibili/videos/extract', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({video_ids: Array.from(SELECTED)})
+  });
+  const j = await r.json();
+  if (j.success) {
+    msg('已提交');
+    pollExtract(j.data.task_id);
+  } else { msg('失败: ' + (j.error || '')); }
+}
+
+async function deleteSelected() {
+  if (!SELECTED.size) { msg('请先勾选视频'); return; }
+  if (!confirm(`删除 ${SELECTED.size} 个视频（含字幕文件）？`)) return;
+  const r = await fetch('/api/bilibili/videos/batch-delete', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({video_ids: Array.from(SELECTED)})
+  });
+  const j = await r.json();
+  msg(j.success ? '已删除' : ('失败: ' + (j.error || '')));
+  SELECTED.clear();
+  loadVideos();
+}
+
+function pollExtract(taskId) {
+  if (POLL_IDS.has(taskId)) return;
+  POLL_IDS.add(taskId);
+  setTimeout(async () => {
+    POLL_IDS.delete(taskId);
+    const r = await fetch('/api/bilibili/videos/extract/status/' + taskId);
+    const j = await r.json();
+    if (!j.success) return;
+    const st = j.data;
+    if (st.status === 'running' || st.status === 'pending') {
+      msg('提取中…');
+      pollExtract(taskId);
+    } else {
+      msg(st.status === 'completed' ? '✅ 提取+摘要完成' : ('❌ ' + (st.error || '完成')));
+      loadVideos();
+    }
+  }, 2500);
+}
+
+function msg(s) { document.getElementById('v-msg').textContent = s; }
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+loadVideos();
+</script>
+{% endblock %}

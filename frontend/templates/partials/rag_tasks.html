@@ -1,0 +1,19 @@
+{% if tasks %}
+<div class="list-group">
+  {% for t in tasks %}
+  <div class="list-group-item d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2" style="min-width:0">
+      {% set badge = {'running':'🟡 运行中','pending':'⏸ 排队','completed':'✅ 完成','failed':'❌ 失败'} %}
+      <span class="badge {{ {'running':'bg-warning text-dark','pending':'bg-secondary','completed':'bg-success','failed':'bg-danger'}.get(t.status, 'bg-secondary') }}">{{ badge.get(t.status, t.status) }}</span>
+      <span class="small text-truncate">{{ t.question }}</span>
+      {% if t.source and t.source != 'all' %}<span class="badge bg-light text-dark small">{{ t.source }}</span>{% endif %}
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+      <small class="text-muted">{{ (t.created_at or '')[5:16] }}</small>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-muted small py-4 text-center">暂无问答记录</div>
+{% endif %}

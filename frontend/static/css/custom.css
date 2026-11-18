@@ -1,0 +1,84 @@
+/* InfoSystem Custom Styles */
+:root {
+  --sidebar-width: 240px;
+  --nav-icon-width: 28px;
+}
+
+body {
+  font-size: .9rem;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  min-height: 100vh;
+  background: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+}
+
+.sidebar .nav-link {
+  color: #495057;
+  padding: .5rem 1rem;
+  border-radius: .375rem;
+  margin: .1rem .5rem;
+}
+
+.sidebar .nav-link:hover {
+  background: #e9ecef;
+}
+
+.sidebar .nav-link.active {
+  background: #0d6efd;
+  color: white;
+}
+
+.sidebar .nav-link .icon {
+  display: inline-block;
+  width: var(--nav-icon-width);
+}
+
+.sidebar-sub { padding-left: calc(var(--nav-icon-width) + 1rem); }
+
+.main-content {
+  padding: 1.5rem 2rem;
+  min-width: 0;          /* 防止 flex 子项溢出 */
+  overflow-x: hidden;
+}
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+}
+
+/* Collapse toggle caret */
+.collapse-toggle::after {
+  content: "\25B6";
+  display: inline-block;
+  margin-left: .5rem;
+  transition: transform .2s;
+  font-size: .7rem;
+}
+
+.collapse-toggle[aria-expanded="true"]::after {
+  transform: rotate(90deg);
+}
+
+/* Progress bar */
+.progress-htx { height: 1.5rem; }
+
+/* Status badges */
+.status-running { color: #ffc107; }
+.status-completed { color: #198754; }
+.status-failed { color: #dc3545; }
+.status-queued { color: #6c757d; }
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: .25rem;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

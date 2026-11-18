@@ -1,0 +1,56 @@
+{
+  "papers": {
+    "path": "knowledgebase/default/papers",
+    "title_weight": 0.5,
+    "body_weight": 0.5,
+    "tag_boost": 0.2
+  },
+  "papers-dense": {
+    "path": "knowledgebase/default/dense",
+    "title_weight": 0.5,
+    "body_weight": 0.5,
+    "tag_boost": 0.2
+  },
+  "runoob": {
+    "path": "knowledgebase/default/web/runoob"
+  },
+  "newapi": {
+    "path": "knowledgebase/default/web/newapi"
+  },
+  "CBAC": {
+    "path": "knowledgebase/CBAC/papers",
+    "title_weight": 0.5,
+    "body_weight": 0.5,
+    "tag_boost": 0.2
+  },
+  "CBAC-dense": {
+    "path": "knowledgebase/CBAC/dense",
+    "title_weight": 0.5,
+    "body_weight": 0.5,
+    "tag_boost": 0.2
+  },
+  "dairy": {
+    "path": "knowledgebase/dairy",
+    "title_weight": 0.5,
+    "body_weight": 0.5,
+    "tag_boost": 0.2
+  },
+  "research_projects": {
+    "path": "knowledgebase/default/research_projects",
+    "title_weight": 0.5,
+    "body_weight": 0.5,
+    "tag_boost": 0.2
+  },
+  "bilibili-dense": {
+    "path": "knowledgebase/community/bilibili/dense",
+    "title_weight": 0.5,
+    "body_weight": 0.5,
+    "tag_boost": 0.2
+  },
+  "agentic-se": {
+    "path": "knowledgebase/agentic-se/papers",
+    "title_weight": 0.5,
+    "body_weight": 0.5,
+    "tag_boost": 0.2
+  }
+}

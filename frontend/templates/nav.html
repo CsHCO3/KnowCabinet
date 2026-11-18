@@ -1,0 +1,92 @@
+<nav class="sidebar flex-shrink-0 p-2">
+  <div class="d-flex align-items-center mb-3 px-2">
+    <span class="fs-5 fw-semibold">📚 InfoSystem</span>
+  </div>
+  <hr class="my-2">
+  <ul class="nav nav-pills flex-column mb-auto">
+    <!-- 论文调研 -->
+    <li class="nav-item">
+      <a href="/survey/smart" class="nav-link {% if '/survey' in request.url.path or request.url.path == '/papers' %}active{% endif %}">
+        <span class="icon">🔍</span> 论文调研
+      </a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/papers" class="nav-link small {% if request.url.path == '/papers' %}active{% endif %}">多平台检索</a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/survey/smart" class="nav-link small {% if request.url.path == '/survey/smart' %}active{% endif %}">智能搜索</a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/survey/quick-test" class="nav-link small {% if request.url.path == '/survey/quick-test' %}active{% endif %}">快速测试</a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/survey/start" class="nav-link small {% if request.url.path == '/survey/start' %}active{% endif %}">开始调研</a>
+    </li>
+
+    <!-- B站调研 -->
+    <li class="nav-item mt-2">
+      <span class="nav-link disabled"><span class="icon">🎬</span> B站调研</span>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/bilibili/collect" class="nav-link small {% if '/bilibili/collect' in request.url.path %}active{% endif %}">采集</a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/bilibili/extract" class="nav-link small {% if '/bilibili/extract' in request.url.path %}active{% endif %}">提取</a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/bilibili/query" class="nav-link small {% if '/bilibili/query' in request.url.path %}active{% endif %}">问答</a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/videos" class="nav-link small {% if request.url.path == '/videos' %}active{% endif %}">视频管理</a>
+    </li>
+
+    <!-- 监控 -->
+    <li class="nav-item mt-2">
+      <a href="/tasks" class="nav-link {% if '/tasks' in request.url.path %}active{% endif %}">
+        <span class="icon">📊</span> 监控
+      </a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/tasks" class="nav-link small {% if request.url.path == '/tasks' %}active{% endif %}">远程任务</a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/task-center" class="nav-link small {% if request.url.path == '/task-center' %}active{% endif %}">任务中心</a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/archive" class="nav-link small {% if request.url.path == '/archive' %}active{% endif %}">归档管理</a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/tasks/submit" class="nav-link small {% if request.url.path == '/tasks/submit' %}active{% endif %}">提交转换</a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/ocr" class="nav-link small {% if request.url.path == '/ocr' %}active{% endif %}">OCR 识别</a>
+    </li>
+    <!-- RAG 问答页已于 2026-10-21 下线：检索统一走 CLI kb-ask / kb-fetch（见 SKILL.md） -->
+
+    <!-- 配置 -->
+    <li class="nav-item mt-2">
+      <span class="nav-link disabled"><span class="icon">⚙️</span> 配置</span>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/models" class="nav-link small {% if request.url.path == '/models' %}active{% endif %}">模型 API</a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/prompts" class="nav-link small {% if request.url.path == '/prompts' %}active{% endif %}">提示词库</a>
+    </li>
+    <li class="sidebar-sub">
+      <a href="/settings/social" class="nav-link small {% if '/settings/social' in request.url.path %}active{% endif %}">社交账号</a>
+    </li>
+
+    <!-- 帮助 -->
+    <li class="nav-item mt-2">
+      <a href="/about" class="nav-link {% if request.url.path == '/about' %}active{% endif %}">
+        <span class="icon">📁</span> 关于
+      </a>
+    </li>
+  </ul>
+
+  <hr class="my-2">
+  <div class="px-2 small text-muted">
+    InfoSystem v0.1
+  </div>
+</nav>

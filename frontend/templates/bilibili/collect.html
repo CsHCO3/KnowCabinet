@@ -1,0 +1,511 @@
+{% extends "base.html" %}
+{% block title %}B站采集 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mb-4">B站视频采集</h2>
+
+  <div class="row g-3 mb-4">
+    <!-- 输入1：视频链接 -->
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="card-title">视频链接</h6>
+          <div class="input-group input-group-sm mb-2">
+            <input type="text" id="url-input" class="form-control"
+                   placeholder="BV号 或 完整链接" onkeydown="if(event.key==='Enter')checkUrl()">
+            <button class="btn btn-primary" onclick="checkUrl()">加入</button>
+          </div>
+          <div id="url-feedback" class="small"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 输入2：作者ID -->
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="card-title">作者空间</h6>
+          <div class="input-group input-group-sm mb-2">
+            <input type="text" id="author-mid" class="form-control" placeholder="作者MID 或 space.bilibili.com/xxx">
+            <input type="number" id="author-count" class="form-control" style="max-width:70px" placeholder="数量" value="30">
+            <button class="btn btn-outline-primary" onclick="searchAuthor()">搜索</button>
+          </div>
+          <div id="author-feedback" class="small"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 输入3：收藏夹 -->
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="card-title">收藏夹导入</h6>
+          <div class="input-group input-group-sm mb-2">
+            <select id="fav-select" class="form-select">
+              <option value="">加载中...</option>
+            </select>
+            <input type="number" id="fav-count" class="form-control" style="max-width:70px" placeholder="数量" value="0">
+            <button class="btn btn-outline-primary" onclick="loadFavPreview()">加载</button>
+          </div>
+          <div id="fav-feedback" class="small"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 合集/作者/收藏夹详细反馈 -->
+  <div id="detail-feedback" class="mb-3"></div>
+
+  <!-- 待提交队列 -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>待提交队列 <span id="queue-count" class="badge bg-secondary">0</span></span>
+      <div>
+        <button class="btn btn-sm btn-outline-secondary" onclick="toggleQueueAll(true)">全选</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="toggleQueueAll(false)">全不选</button>
+        <button class="btn btn-sm btn-success" onclick="commitQueue()" id="commit-btn" disabled>提交入库</button>
+        <button class="btn btn-sm btn-outline-danger" onclick="clearQueue()">清空</button>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0" id="queue-table">
+          <thead class="table-light">
+            <tr>
+              <th style="width:30px"><input type="checkbox" id="queue-select-all" onchange="toggleQueueAll(this.checked)"></th>
+              <th>BVID</th>
+              <th>标题</th>
+              <th>UP主</th>
+              <th>播放</th>
+              <th>时长</th>
+              <th>来源</th>
+              <th style="width:40px"></th>
+            </tr>
+          </thead>
+          <tbody id="queue-body">
+            <tr id="queue-empty">
+              <td colspan="8" class="text-center text-muted py-4">队列为空，从上方添加视频</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── 队列管理 ──
+let queue = [];
+
+function addToQueue(video) {
+  if (queue.some(v => v.bvid === video.bvid)) {
+    return false; // 去重
+  }
+  queue.push(video);
+  renderQueue();
+  return true;
+}
+
+function removeFromQueue(bvid) {
+  queue = queue.filter(v => v.bvid !== bvid);
+  renderQueue();
+}
+
+function clearQueue() {
+  queue = [];
+  renderQueue();
+}
+
+function toggleQueueAll(checked) {
+  document.getElementById('queue-select-all').checked = checked;
+  document.querySelectorAll('.queue-check').forEach(cb => cb.checked = checked);
+  updateCommitBtn();
+}
+
+function renderQueue() {
+  const tbody = document.getElementById('queue-body');
+  const empty = document.getElementById('queue-empty');
+  const count = document.getElementById('queue-count');
+
+  count.textContent = queue.length;
+
+  if (queue.length === 0) {
+    tbody.innerHTML = '<tr id="queue-empty"><td colspan="8" class="text-center text-muted py-4">队列为空，从上方添加视频</td></tr>';
+    updateCommitBtn();
+    return;
+  }
+
+  tbody.innerHTML = queue.map((v, i) => `
+    <tr>
+      <td><input type="checkbox" class="queue-check" value="${v.bvid}" checked onchange="updateCommitBtn()"></td>
+      <td><code>${v.bvid}</code></td>
+      <td class="text-truncate" style="max-width:250px" title="${v.title}">${v.title}</td>
+      <td>${v.author || '—'}</td>
+      <td>${v.view ? v.view.toLocaleString() : '—'}</td>
+      <td>${v.duration ? Math.floor(v.duration/60)+':'+String(v.duration%60).padStart(2,'0') : '—'}</td>
+      <td><span class="badge bg-secondary">${v.source_type || '手动'}</span></td>
+      <td><button class="btn btn-sm btn-outline-danger py-0" onclick="removeFromQueue('${v.bvid}')">✕</button></td>
+    </tr>
+  `).join('');
+  updateCommitBtn();
+}
+
+function updateCommitBtn() {
+  const checked = document.querySelectorAll('.queue-check:checked');
+  const btn = document.getElementById('commit-btn');
+  btn.disabled = checked.length === 0;
+  btn.textContent = `提交入库 (${checked.length})`;
+}
+
+// ── 输入1：URL ──
+function checkUrl() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) return;
+
+  const fb = document.getElementById('url-feedback');
+  const df = document.getElementById('detail-feedback');
+  fb.innerHTML = '<span class="text-muted">检查中...</span>';
+  df.innerHTML = '';
+
+  const form = new FormData();
+  form.append('url', url);
+
+  fetch('/api/bilibili/collect/check-url', { method: 'POST', body: form })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) {
+        fb.innerHTML = `<span class="text-danger">${data.error}</span>`;
+        return;
+      }
+      const v = data.video;
+      if (v.already_in_db) {
+        fb.innerHTML = `<span class="text-warning">⚠ 已在数据库中</span>`;
+      } else {
+        fb.innerHTML = `<span class="text-success">✓ ${v.title}</span>`;
+      }
+
+      // 显示合集信息
+      if (data.collection) {
+        const c = data.collection;
+        let html = `<div class="alert alert-info py-2 small mb-3">
+          <strong>合集：${c.title}</strong>（共 ${c.count} 个视频）
+          <div class="mt-1">
+            <label><input type="checkbox" onchange="toggleCollectionVids(this.checked, '${c.season_id}')"> 全部加入</label>
+          </div>
+        </div>`;
+
+        // 合并合集视频与当前视频
+        const allVids = c.videos || [];
+        // 确保当前视频也在列表中
+        const currentBvid = v.bvid;
+        if (!allVids.some(x => x.bvid === currentBvid)) {
+          allVids.unshift({
+            bvid: currentBvid, title: v.title, duration: v.duration,
+            pubdate: v.pubdate, pic: v.pic, view: v.view,
+          });
+        }
+
+        html += '<table class="table table-sm small mb-0"><thead><tr><th></th><th>标题</th><th>时长</th><th>播放</th></tr></thead><tbody>';
+        allVids.forEach(vid => {
+          const dur = vid.duration ? Math.floor(vid.duration/60)+':'+String(vid.duration%60).padStart(2,'0') : '—';
+          html += `<tr>
+            <td><input type="checkbox" class="collection-check-${c.season_id}" value="${vid.bvid}"
+                       data-title="${(vid.title || '').replace(/"/g, '&quot;')}"
+                       data-author="${v.author}" data-author-mid="${v.author_mid || 0}"
+                       data-duration="${vid.duration || 0}" data-pubdate="${vid.pubdate || 0}"
+                       data-pic="${vid.pic || ''}" data-view="${vid.view || 0}"
+                       data-source="collection" data-source-detail="${c.title}"></td>
+            <td class="text-truncate" style="max-width:300px">${vid.title || ''}</td>
+            <td>${dur}</td>
+            <td>${(vid.view || 0).toLocaleString()}</td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+        html += `<button class="btn btn-sm btn-primary mt-2" onclick="addSelectedCollection('${c.season_id}')">加入选中到队列</button>`;
+        df.innerHTML = html;
+      } else {
+        // 无合集，直接提供加入按钮
+        df.innerHTML = `<button class="btn btn-sm btn-primary mt-2" onclick="addSingleVideo('${v.bvid}','${(v.title||'').replace(/'/g,"\\'")}','${v.author}','${v.author_mid||0}','${v.duration||0}','${v.pubdate||0}','${v.view||0}')">加入队列</button>`;
+      }
+    })
+    .catch(e => {
+      fb.innerHTML = `<span class="text-danger">请求失败: ${e.message}</span>`;
+    });
+}
+
+function addSingleVideo(bvid, title, author, authorMid, duration, pubdate, view) {
+  const added = addToQueue({
+    bvid, title, author, author_mid: parseInt(authorMid) || 0,
+    duration: parseInt(duration) || 0,
+    pubdate: parseInt(pubdate) || 0,
+    view: parseInt(view) || 0,
+    source_type: 'manual',
+    source_detail: '',
+  });
+  document.getElementById('url-feedback').innerHTML = added
+    ? '<span class="text-success">✓ 已加入队列</span>'
+    : '<span class="text-warning">⚠ 已在队列中</span>';
+}
+
+function toggleCollectionVids(checked, seasonId) {
+  document.querySelectorAll(`.collection-check-${seasonId}`).forEach(cb => cb.checked = checked);
+}
+
+function addSelectedCollection(seasonId) {
+  const checks = document.querySelectorAll(`.collection-check-${seasonId}:checked`);
+  let count = 0;
+  checks.forEach(cb => {
+    const added = addToQueue({
+      bvid: cb.value,
+      title: cb.dataset.title || '',
+      author: cb.dataset.author || '',
+      author_mid: parseInt(cb.dataset.authorMid) || 0,
+      duration: parseInt(cb.dataset.duration) || 0,
+      pubdate: parseInt(cb.dataset.pubdate) || 0,
+      pic: cb.dataset.pic || '',
+      view: parseInt(cb.dataset.view) || 0,
+      source_type: 'collection',
+      source_detail: cb.dataset.sourceDetail || '',
+    });
+    if (added) count++;
+  });
+  document.getElementById('url-feedback').innerHTML = `<span class="text-success">✓ 已加入 ${count} 个视频</span>`;
+}
+
+// ── 输入2：作者 ──
+function searchAuthor() {
+  const mid = document.getElementById('author-mid').value.trim();
+  const count = parseInt(document.getElementById('author-count').value) || 30;
+  if (!mid) return;
+
+  const fb = document.getElementById('author-feedback');
+  const df = document.getElementById('detail-feedback');
+  fb.innerHTML = '<span class="text-muted">搜索中...</span>';
+  df.innerHTML = '';
+
+  const form = new FormData();
+  form.append('mid', mid);  // 保持原始值，后端会解析
+  form.append('count', count);
+
+  fetch('/api/bilibili/collect/search-author', { method: 'POST', body: form })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) {
+        fb.innerHTML = `<span class="text-danger">${data.error}</span>`;
+        return;
+      }
+      const author = data.author || {};
+      const stat = data.stat || {};
+      fb.innerHTML = `<span class="text-success">${author.name || '作者'} (粉丝: ${(stat.follower||0).toLocaleString()})</span>`;
+
+      let html = `<div class="alert alert-success py-2 small mb-2">
+        <strong>${data.videos.length} 个视频</strong>
+        <label class="ms-3"><input type="checkbox" onchange="toggleAuthorVids(this.checked)"> 全部加入</label>
+      </div>`;
+      html += '<table class="table table-sm small mb-0"><thead><tr><th></th><th>标题</th><th>播放</th><th>时长</th></tr></thead><tbody>';
+      data.videos.forEach(v => {
+        const inDb = v.already_in_db ? '⚠' : '';
+        html += `<tr>
+          <td><input type="checkbox" class="author-check" value="${v.bvid}"
+                     data-title="${(v.title||'').replace(/"/g, '&quot;')}"
+                     data-author="${author.name||''}" data-author-mid="${v.author_mid}"
+                     data-duration="0" data-pubdate="${v.pubdate||0}" data-view="${v.play||0}"></td>
+          <td class="text-truncate" style="max-width:300px">${inDb} ${v.title||''}</td>
+          <td>${(v.play||0).toLocaleString()}</td>
+          <td>${v.duration_str||'—'}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      html += `<button class="btn btn-sm btn-primary mt-2" onclick="addSelectedAuthor()">加入选中到队列</button>`;
+      df.innerHTML = html;
+    })
+    .catch(e => fb.innerHTML = `<span class="text-danger">${e.message}</span>`);
+}
+
+function toggleAuthorVids(checked) {
+  document.querySelectorAll('.author-check').forEach(cb => cb.checked = checked);
+}
+
+function addSelectedAuthor() {
+  const checks = document.querySelectorAll('.author-check:checked');
+  let count = 0;
+  checks.forEach(cb => {
+    const added = addToQueue({
+      bvid: cb.value,
+      title: cb.dataset.title || '',
+      author: cb.dataset.author || '',
+      author_mid: parseInt(cb.dataset.authorMid) || 0,
+      duration: parseInt(cb.dataset.duration) || 0,
+      pubdate: parseInt(cb.dataset.pubdate) || 0,
+      view: parseInt(cb.dataset.view) || 0,
+      source_type: 'author',
+      source_detail: cb.dataset.author || '',
+    });
+    if (added) count++;
+  });
+  document.getElementById('author-feedback').innerHTML = `<span class="text-success">✓ 已加入 ${count} 个视频</span>`;
+}
+
+// ── 输入3：收藏夹 ──
+function loadFavorites() {
+  fetch('/api/bilibili/collect/favorites')
+    .then(r => r.json())
+    .then(data => {
+      const sel = document.getElementById('fav-select');
+      if (Array.isArray(data) && data.length > 0) {
+        sel.innerHTML = data.map(f =>
+          `<option value="${f.id}">${f.title} (${f.count})</option>`
+        ).join('');
+      } else {
+        sel.innerHTML = '<option value="">无收藏夹（Cookie 可能过期）</option>';
+      }
+    })
+    .catch(() => {
+      document.getElementById('fav-select').innerHTML = '<option value="">加载失败</option>';
+    });
+}
+
+function loadFavPreview() {
+  const favId = document.getElementById('fav-select').value;
+  const count = parseInt(document.getElementById('fav-count').value) || 0;
+  if (!favId) return;
+
+  const fb = document.getElementById('fav-feedback');
+  const df = document.getElementById('detail-feedback');
+  fb.innerHTML = '<span class="text-muted">加载中...</span>';
+  df.innerHTML = '';
+
+  const form = new FormData();
+  form.append('count', count);
+
+  fetch(`/api/bilibili/collect/favorites/${favId}/preview`, { method: 'POST', body: form })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.ok) {
+        fb.innerHTML = `<span class="text-danger">${data.error}</span>`;
+        return;
+      }
+      fb.innerHTML = `<span class="text-success">${data.total} 个视频</span>`;
+
+      let html = `<div class="alert alert-success py-2 small mb-2">
+        <label><input type="checkbox" onchange="toggleFavVids(this.checked)"> 全部加入</label>
+      </div>`;
+      html += '<table class="table table-sm small mb-0"><thead><tr><th></th><th>标题</th><th>收藏时间</th></tr></thead><tbody>';
+      data.videos.forEach(v => {
+        const inDb = v.already_in_db ? '⚠' : '';
+        html += `<tr>
+          <td><input type="checkbox" class="fav-check" value="${v.bvid}"
+                     data-title="${(v.title||'').replace(/"/g, '&quot;')}"></td>
+          <td class="text-truncate" style="max-width:350px">${inDb} ${v.title||''}</td>
+          <td>${v.fav_time||'—'}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      html += `<button class="btn btn-sm btn-primary mt-2" onclick="addSelectedFav()">加入选中到队列</button>`;
+      df.innerHTML = html;
+    })
+    .catch(e => fb.innerHTML = `<span class="text-danger">${e.message}</span>`);
+}
+
+function toggleFavVids(checked) {
+  document.querySelectorAll('.fav-check').forEach(cb => cb.checked = checked);
+}
+
+function addSelectedFav() {
+  const checks = document.querySelectorAll('.fav-check:checked');
+  if (checks.length === 0) return;
+  const bvids = Array.from(checks).map(cb => cb.value);
+
+  // 先调后端补全数据
+  fetch('/api/bilibili/collect/enrich-batch', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(bvids),
+  })
+    .then(r => r.json())
+    .then(data => {
+      const enrichedMap = {};
+      (data.videos || []).forEach(v => { enrichedMap[v.bvid] = v; });
+
+      let count = 0;
+      checks.forEach(cb => {
+        const enriched = enrichedMap[cb.value] || {};
+        const added = addToQueue({
+          bvid: cb.value,
+          title: enriched.title || cb.dataset.title || '',
+          author: enriched.author || '',
+          author_mid: enriched.author_mid || 0,
+          duration: enriched.duration || 0,
+          pubdate: enriched.pubdate || 0,
+          pic: enriched.pic || '',
+          view: enriched.view || 0,
+          source_type: 'favorites',
+          source_detail: document.getElementById('fav-select').selectedOptions[0]?.text || '',
+        });
+        if (added) count++;
+      });
+      document.getElementById('fav-feedback').innerHTML = `<span class="text-success">✓ 已加入 ${count} 个视频</span>`;
+    })
+    .catch(() => {
+      // 降级：不加 enrich
+      let count = 0;
+      checks.forEach(cb => {
+        const added = addToQueue({
+          bvid: cb.value,
+          title: cb.dataset.title || '',
+          author: '', author_mid: 0, duration: 0, pubdate: 0, view: 0,
+          source_type: 'favorites',
+          source_detail: document.getElementById('fav-select').selectedOptions[0]?.text || '',
+        });
+        if (added) count++;
+      });
+      document.getElementById('fav-feedback').innerHTML = `<span class="text-success">✓ 已加入 ${count} 个视频</span>`;
+    });
+}
+
+// ── 提交入库 ──
+function commitQueue() {
+  const checked = document.querySelectorAll('.queue-check:checked');
+  if (checked.length === 0) return;
+
+  const videos = Array.from(checked).map(cb => {
+    const v = queue.find(x => x.bvid === cb.value);
+    return v;
+  }).filter(Boolean);
+
+  const btn = document.getElementById('commit-btn');
+  btn.disabled = true;
+  btn.textContent = '提交中...';
+
+  fetch('/api/bilibili/collect/commit', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({videos}),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message || '提交成功');
+        // 清除已提交的条目
+        checked.forEach(cb => {
+          queue = queue.filter(v => v.bvid !== cb.value);
+        });
+        renderQueue();
+      } else {
+        alert('提交失败: ' + (data.error || '未知错误'));
+      }
+    })
+    .catch(e => {
+      alert('提交失败: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '提交入库';
+    });
+}
+
+// 页面加载时加载收藏夹列表
+document.addEventListener('DOMContentLoaded', loadFavorites);
+</script>
+{% endblock %}

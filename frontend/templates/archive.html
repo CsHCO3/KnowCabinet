@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}归档管理 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">🗂️ 论文归档</h2>
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary btn-sm" onclick="runArchive()">🔄 归档刷新</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="loadOverview()">刷新列表</button>
+    </div>
+  </div>
+
+  <div class="d-flex align-items-center gap-2 mb-2 small">
+    <span class="text-muted">共 <b id="paper-count">…</b> 篇</span>
+    <span id="paper-filtered" class="text-muted"></span>
+  </div>
+
+  <div class="card mb-2">
+    <div class="card-body py-2">
+      <div class="row g-2 align-items-center">
+        <div class="col">
+          <input id="ar-keyword" class="form-control form-control-sm" placeholder="🔍 搜索标题/ID…" oninput="applyView()">
+        </div>
+        <div class="col-2">
+          <select id="ar-section" class="form-select form-select-sm" onchange="applyView()"><option value="">全部分类</option></select>
+        </div>
+        <div class="col-2">
+          <input id="ar-year" class="form-control form-control-sm" placeholder="年份" oninput="applyView()">
+        </div>
+        <div class="col-2">
+          <select id="ar-status" class="form-select form-select-sm" onchange="applyView()">
+            <option value="">全部状态</option>
+            <option value="md">有解析版</option>
+            <option value="condense">有浓缩</option>
+            <option value="none">仅PDF</option>
+          </select>
+        </div>
+        <div class="col-2">
+          <select id="ar-sort" class="form-select form-select-sm" onchange="applyView()">
+            <option value="year">按年份↓</option>
+            <option value="cit">按引用↓</option>
+            <option value="title">按标题</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="papers-box"><span class="text-muted small">加载中…</span></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let ALL_PAPERS = [];
+async function loadOverview() {
+  try {
+    const r = await fetch('/api/archive/overview');
+    const j = await r.json();
+    ALL_PAPERS = j.papers || [];
+    populateSections();
+    applyView();
+  } catch (e) {
+    document.getElementById('papers-box').innerHTML = '<span class="text-danger">加载失败: ' + esc(String(e)) + '</span>';
+  }
+}
+
+function populateSections() {
+  const sel = document.getElementById('ar-section');
+  const sections = [...new Set(ALL_PAPERS.map(p => p.section).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">全部分类</option>' +
+    sections.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+}
+
+function applyView() {
+  const kw = (document.getElementById('ar-keyword').value || '').trim().toLowerCase();
+  const sec = document.getElementById('ar-section').value;
+  const year = (document.getElementById('ar-year').value || '').trim();
+  const st = document.getElementById('ar-status').value;
+  const sort = document.getElementById('ar-sort').value;
+  let list = ALL_PAPERS.filter(p => {
+    if (kw && !((p.title || '').toLowerCase().includes(kw) || (p.id || '').toLowerCase().includes(kw))) return false;
+    if (sec && p.section !== sec) return false;
+    if (year && String(p.year || '') !== year) return false;
+    if (st === 'md' && !(p.status || {}).md) return false;
+    if (st === 'condense' && !(p.status || {}).condense) return false;
+    if (st === 'none' && ((p.status || {}).md || (p.status || {}).pdf)) return false;
+    return true;
+  });
+  if (sort === 'year') list.sort((a, b) => (b.year || 0) - (a.year || 0));
+  else if (sort === 'cit') list.sort((a, b) => (b.citations || 0) - (a.citations || 0));
+  else if (sort === 'title') list.sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'zh'));
+  renderPapers(list);
+  document.getElementById('paper-filtered').textContent =
+    (list.length !== ALL_PAPERS.length) ? `（筛选 ${list.length}/${ALL_PAPERS.length}）` : '';
+}
+
+function scoreBadge(score) {
+  if (score == null) return '<span class="badge bg-light text-muted border">—</span>';
+  const cls = score >= 70 ? 'bg-success' : score >= 45 ? 'bg-primary' : score >= 30 ? 'bg-warning text-dark' : 'bg-secondary';
+  return `<span class="badge ${cls}" title="评分">${score}</span>`;
+}
+function renderPapers(papers) {
+  document.getElementById('paper-count').textContent = papers.length;
+  const box = document.getElementById('papers-box');
+  if (!papers.length) { box.innerHTML = '<div class="text-muted small">暂无论文（先跑 archive 或 survey）</div>'; return; }
+  box.innerHTML = '<div class="accordion" id="papers-accordion">' +
+    papers.map(p => renderPaperItem(p)).join('') + '</div>';
+}
+
+const STAGE_LABELS = {pdf: 'PDF', md: 'MD', ocr: 'OCR', translate: '译', condense: '浓'};
+
+function stageChip(k, st) {
+  const label = STAGE_LABELS[k];
+  const tooltip = ({pdf:'原始PDF', md:'解析版', ocr:'图片识别', translate:'翻译', condense:'浓缩'})[k] + (st ? ' ✅ 完成' : ' — 未做');
+  return st
+    ? `<span class="badge bg-success text-nowrap" style="width:44px" title="${tooltip}">✅${label}</span>`
+    : `<span class="badge bg-light border text-muted text-nowrap" style="width:44px" title="${tooltip}">· ${label}</span>`;
+}
+
+const STEP_DEFS = [
+  {key: 'pdf',       label: '原始 PDF', desc: '论文原始 PDF'},
+  {key: 'md',        label: '解析版',   desc: 'marker/mineru 转 Markdown'},
+  {key: 'ocr',       label: '图片 OCR', desc: '图片识别文字嵌入'},
+  {key: 'translate', label: '翻译',     desc: '远程翻译成中文'},
+  {key: 'condense',  label: '浓缩',     desc: 'LLM 提炼知识条目'},
+];
+
+function stepControl(k, s, p) {
+  if (s[k]) return '<span class="badge bg-success text-nowrap">✅ 已完成</span>';
+  if (k === 'md') return s.pdf
+    ? `<button class="btn btn-outline-primary btn-sm py-0 px-1" onclick="doAction('${p.id}','convert')" title="用 marker 转 Markdown">开始转换</button>`
+    : '<button class="btn btn-outline-secondary btn-sm py-0 px-1" disabled title="需先有 PDF">需先上传 PDF</button>';
+  if (k === 'translate') return '<button class="btn btn-outline-secondary btn-sm py-0 px-1" disabled title="需远程上传流程">翻译 · 待开放</button>';
+  if ((k === 'ocr' || k === 'condense') && !s.md)
+    return '<button class="btn btn-outline-secondary btn-sm py-0 px-1" disabled title="需先有解析版 md">需先转换</button>';
+  if (k === 'ocr')    return `<button class="btn btn-outline-primary btn-sm py-0 px-1" onclick="doAction('${p.id}','ocr')">开始 OCR</button>`;
+  if (k === 'condense') return `<button class="btn btn-outline-success btn-sm py-0 px-1" onclick="doAction('${p.id}','condense')">开始浓缩</button>`;
+  return '<span class="badge bg-secondary text-nowrap">待处理</span>';
+}
+
+function renderPaperItem(p) {
+  const s = p.status || {};
+  const arxivUrl = 'https://arxiv.org/abs/' + p.id;
+  // 左：评分 / 引用 / 分类(section+category) / venue / 年份
+  const left = [];
+  if (p.score != null) left.push(scoreBadge(p.score));
+  if (p.citations != null) left.push(`<span class="small text-muted text-nowrap">引 ${p.citations}</span>`);
+  if (p.section) left.push(`<span class="badge bg-primary-subtle text-primary border text-nowrap" title="分类">${esc(p.section)}</span>`);
+  if (p.primary_category) left.push(`<span class="badge bg-light text-dark border text-nowrap" title="arXiv分类">${esc(p.primary_category)}</span>`);
+  if (p.venue) left.push(`<span class="badge bg-light text-muted border text-nowrap" title="venue">${esc(p.venue.slice(0, 22))}</span>`);
+  if (p.year) left.push(`<span class="small text-muted text-nowrap">${p.year}</span>`);
+  const stages = ['pdf','md','ocr','translate','condense'].map(k => stageChip(k, s[k])).join('');
+
+  return `
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#p-${p.id}" style="font-size:.9rem">
+          <span class="d-flex align-items-center w-100 gap-2">
+            <span class="d-flex gap-1 flex-shrink-0 align-items-center text-nowrap">${left.join('')}</span>
+            <span class="text-truncate flex-grow-1" title="${esc(p.title)}">${esc(p.title)}</span>
+            <span class="d-flex gap-1 flex-shrink-0 align-items-center text-nowrap">${stages}</span>
+          </span>
+        </button>
+      </h2>
+      <div id="p-${p.id}" class="accordion-collapse collapse" data-bs-parent="#papers-accordion">
+        <div class="accordion-body">
+          <div class="mb-2">
+            <code class="text-dark fw-semibold">arXiv: ${esc(p.id)}</code>
+            <a href="${esc(arxivUrl)}" target="_blank" class="small ms-2">原文 ↗</a>
+          </div>
+          <div class="border rounded p-2">
+            ${STEP_DEFS.map(d => `
+              <div class="d-flex align-items-center gap-2 py-1 ${d.key !== 'condense' ? 'border-bottom' : ''}">
+                <span class="badge text-nowrap ${s[d.key] ? 'bg-success' : 'bg-light border text-muted'}" style="width:92px">${s[d.key] ? '✅' : '·'} ${d.label}</span>
+                <span class="small text-muted flex-grow-1">${d.desc}</span>
+                ${stepControl(d.key, s, p)}
+              </div>`).join('')}
+          </div>
+          ${p.abstract ? `<div class="small text-muted mt-2">${esc(p.abstract)}…</div>` : ''}
+          ${p.tags && p.tags.length ? `<div class="small mt-1"><span class="text-muted">关键词:</span> ${p.tags.slice(0, 10).map(t=>`<span class="badge bg-light border text-muted">${esc(t)}</span>`).join(' ')}</div>` : ''}
+          ${p.doi ? `<div class="small text-muted mt-1">DOI: <code>${esc(p.doi)}</code></div>` : ''}
+          ${p.rag_ready && p.rag_ready.length ? `<div class="small mt-1"><span class="text-muted">RAG:</span> ${p.rag_ready.map(f=>`<code>${esc(f)}</code>`).join(' ')}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+async function doAction(id, kind) {
+  const r = await fetch('/api/archive/papers/' + id + '/' + kind, { method: 'POST' });
+  const j = await r.json();
+  alert(j.message || j.error || '');
+  loadOverview();
+}
+
+async function runArchive() {
+  const btn = event.currentTarget;
+  btn.disabled = true; btn.textContent = '归档中…';
+  try {
+    const r = await fetch('/api/archive/run', { method: 'POST' });
+    const j = await r.json();
+    if (j.success) renderPapers(j.data.papers || []);
+    else alert(j.error || '归档失败');
+  } catch (e) { alert('请求失败: ' + e); }
+  btn.disabled = false; btn.textContent = '🔄 归档刷新';
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+loadOverview();
+</script>
+{% endblock %}

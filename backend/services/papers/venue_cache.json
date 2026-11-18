@@ -1,0 +1,722 @@
+{
+  "ieee internet of things journal": {
+    "2yr_mean_citedness": 5.282,
+    "h_index": 253,
+    "i10_index": 8905,
+    "works_count": 19126,
+    "openalex_source_id": "https://openalex.org/S2480266640",
+    "display_name": "IEEE Internet of Things Journal"
+  },
+  "internet technology letters": {
+    "2yr_mean_citedness": 1.4389312977099236,
+    "h_index": 32,
+    "i10_index": 113,
+    "works_count": 1049,
+    "openalex_source_id": "https://openalex.org/S4210238311",
+    "display_name": "Internet Technology Letters"
+  },
+  "international journal of manufacturing technology and management": {
+    "2yr_mean_citedness": 0.1650485436893204,
+    "h_index": 31,
+    "i10_index": 204,
+    "works_count": 1318,
+    "openalex_source_id": "https://openalex.org/S137964361",
+    "display_name": "International Journal of Manufacturing Technology and Management"
+  },
+  "the internet of things": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 15,
+    "i10_index": 32,
+    "works_count": 1478,
+    "openalex_source_id": "https://openalex.org/S4306421051",
+    "display_name": "The Internet of Things"
+  },
+  "industrial communication systems": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 4,
+    "i10_index": 1,
+    "works_count": 53,
+    "openalex_source_id": "https://openalex.org/S4210226045",
+    "display_name": "International Journal of Wireless and Mobile Communication for Industrial Systems"
+  },
+  "ieee transactions on industrial informatics": {
+    "2yr_mean_citedness": 6.791208791208791,
+    "h_index": 257,
+    "i10_index": 6761,
+    "works_count": 10382,
+    "openalex_source_id": "https://openalex.org/S184777250",
+    "display_name": "IEEE Transactions on Industrial Informatics"
+  },
+  "journal of information security and applications": {
+    "2yr_mean_citedness": 2.9583892617449665,
+    "h_index": 78,
+    "i10_index": 870,
+    "works_count": 2068,
+    "openalex_source_id": "https://openalex.org/S4210191536",
+    "display_name": "Journal of Information Security and Applications"
+  },
+  "future generation computer systems": {
+    "2yr_mean_citedness": 5.532967032967033,
+    "h_index": 214,
+    "i10_index": 5134,
+    "works_count": 9502,
+    "openalex_source_id": "https://openalex.org/S186357190",
+    "display_name": "Future Generation Computer Systems"
+  },
+  "ieee communications surveys & tutorials": {
+    "2yr_mean_citedness": 32.53142857142857,
+    "h_index": 333,
+    "i10_index": 1574,
+    "works_count": 1937,
+    "openalex_source_id": "https://openalex.org/S23688054",
+    "display_name": "IEEE Communications Surveys & Tutorials"
+  },
+  "computers in industry": {
+    "2yr_mean_citedness": 10.255591054313099,
+    "h_index": 168,
+    "i10_index": 2522,
+    "works_count": 4734,
+    "openalex_source_id": "https://openalex.org/S60779006",
+    "display_name": "Computers in Industry"
+  },
+  "ad hoc networks": {
+    "2yr_mean_citedness": 5.581137309292649,
+    "h_index": 133,
+    "i10_index": 2031,
+    "works_count": 3743,
+    "openalex_source_id": "https://openalex.org/S4210177528",
+    "display_name": "Ad Hoc Networks"
+  },
+  "the international journal of advanced manufacturing technology": {
+    "2yr_mean_citedness": 3.8553119730185497,
+    "h_index": 199,
+    "i10_index": 18330,
+    "works_count": 31262,
+    "openalex_source_id": "https://openalex.org/S77056576",
+    "display_name": "The International Journal of Advanced Manufacturing Technology"
+  },
+  "ieee access": {
+    "2yr_mean_citedness": 5.699529562086189,
+    "h_index": 370,
+    "i10_index": 54347,
+    "works_count": 110957,
+    "openalex_source_id": "https://openalex.org/S2485537415",
+    "display_name": "IEEE Access"
+  },
+  "international journal of production research": {
+    "2yr_mean_citedness": 7.1901469317199656,
+    "h_index": 253,
+    "i10_index": 9996,
+    "works_count": 14300,
+    "openalex_source_id": "https://openalex.org/S65690446",
+    "display_name": "International Journal of Production Research"
+  },
+  "journal of software engineering and applications": {
+    "2yr_mean_citedness": 2.5444444444444443,
+    "h_index": 41,
+    "i10_index": 286,
+    "works_count": 1113,
+    "openalex_source_id": "https://openalex.org/S33096572",
+    "display_name": "Journal of Software Engineering and Applications"
+  },
+  "journal of computer and communications": {
+    "2yr_mean_citedness": 2.4592592592592593,
+    "h_index": 39,
+    "i10_index": 254,
+    "works_count": 1685,
+    "openalex_source_id": "https://openalex.org/S4210198603",
+    "display_name": "Journal of Computer and Communications"
+  },
+  "journal of electrical and computer engineering": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 50,
+    "i10_index": 1025,
+    "works_count": 3268,
+    "openalex_source_id": "https://openalex.org/S2764532672",
+    "display_name": "International Journal of Electrical and Computer Engineering (IJECE)"
+  },
+  "tourism management": {
+    "2yr_mean_citedness": 10.448940269749519,
+    "h_index": 348,
+    "i10_index": 4312,
+    "works_count": 6516,
+    "openalex_source_id": "https://openalex.org/S6814119",
+    "display_name": "Tourism Management"
+  },
+  "digital communications and networks": {
+    "2yr_mean_citedness": 3.894230769230769,
+    "h_index": 78,
+    "i10_index": 488,
+    "works_count": 1052,
+    "openalex_source_id": "https://openalex.org/S2495769766",
+    "display_name": "Digital Communications and Networks"
+  },
+  "ssrn electronic journal": {
+    "2yr_mean_citedness": 0.2021143892660767,
+    "h_index": 452,
+    "i10_index": 110608,
+    "works_count": 1672547,
+    "openalex_source_id": "https://openalex.org/S4210172589",
+    "display_name": "SSRN Electronic Journal"
+  },
+  "arxiv (cornell university)": {
+    "2yr_mean_citedness": 0.18269852598705924,
+    "h_index": 694,
+    "i10_index": 106411,
+    "works_count": 3285883,
+    "openalex_source_id": "https://openalex.org/S4306400194",
+    "display_name": "arXiv (Cornell University)"
+  },
+  "proceedings of the aaai conference on artificial intelligence": {
+    "2yr_mean_citedness": 4.393700088731145,
+    "h_index": 293,
+    "i10_index": 9285,
+    "works_count": 25109,
+    "openalex_source_id": "https://openalex.org/S4210191458",
+    "display_name": "Proceedings of the AAAI Conference on Artificial Intelligence"
+  },
+  "transactions of the association for computational linguistics": {
+    "2yr_mean_citedness": 12.635658914728682,
+    "h_index": 105,
+    "i10_index": 476,
+    "works_count": 896,
+    "openalex_source_id": "https://openalex.org/S2729999759",
+    "display_name": "Transactions of the Association for Computational Linguistics"
+  },
+  "communications in computer and information science": {
+    "2yr_mean_citedness": 0.5521448107096588,
+    "h_index": 100,
+    "i10_index": 6739,
+    "works_count": 96185,
+    "openalex_source_id": "https://openalex.org/S2764900261",
+    "display_name": "Communications in computer and information science"
+  },
+  "plos digital health": {
+    "2yr_mean_citedness": 5.895539906103286,
+    "h_index": 51,
+    "i10_index": 278,
+    "works_count": 1173,
+    "openalex_source_id": "https://openalex.org/S4210221150",
+    "display_name": "PLOS Digital Health"
+  },
+  "npj digital medicine": {
+    "2yr_mean_citedness": 12.3625,
+    "h_index": 165,
+    "i10_index": 1464,
+    "works_count": 3057,
+    "openalex_source_id": "https://openalex.org/S4210195431",
+    "display_name": "npj Digital Medicine"
+  },
+  "medicina": {
+    "2yr_mean_citedness": 3.243238587424634,
+    "h_index": 105,
+    "i10_index": 4147,
+    "works_count": 13991,
+    "openalex_source_id": "https://openalex.org/S1008817457",
+    "display_name": "Medicina"
+  },
+  "npj health systems": {
+    "2yr_mean_citedness": 4.330708661417323,
+    "h_index": 11,
+    "i10_index": 14,
+    "works_count": 127,
+    "openalex_source_id": "https://openalex.org/S5407042918",
+    "display_name": "npj Health Systems"
+  },
+  "international journal of advanced computer science and applications": {
+    "2yr_mean_citedness": 1.6619326093010303,
+    "h_index": 97,
+    "i10_index": 2792,
+    "works_count": 14164,
+    "openalex_source_id": "https://openalex.org/S23629721",
+    "display_name": "International Journal of Advanced Computer Science and Applications"
+  },
+  "the international journal of …": {
+    "2yr_mean_citedness": 3.8729998315647634,
+    "h_index": 199,
+    "i10_index": 18341,
+    "works_count": 31269,
+    "openalex_source_id": "https://openalex.org/S77056576",
+    "display_name": "The International Journal of Advanced Manufacturing Technology"
+  },
+  "… surveys & tutorials": {
+    "2yr_mean_citedness": 35.05428571428571,
+    "h_index": 334,
+    "i10_index": 1586,
+    "works_count": 1937,
+    "openalex_source_id": "https://openalex.org/S23688054",
+    "display_name": "IEEE Communications Surveys & Tutorials"
+  },
+  "journal of information security and …": {
+    "2yr_mean_citedness": 3.0093959731543625,
+    "h_index": 78,
+    "i10_index": 874,
+    "works_count": 2068,
+    "openalex_source_id": "https://openalex.org/S4210191536",
+    "display_name": "Journal of Information Security and Applications"
+  },
+  "management science and engineering": {
+    "2yr_mean_citedness": 3.7403846153846154,
+    "h_index": 42,
+    "i10_index": 272,
+    "works_count": 686,
+    "openalex_source_id": "https://openalex.org/S2764415137",
+    "display_name": "International Journal of Management Science and Engineering Management"
+  },
+  "教育科学文献": {
+    "2yr_mean_citedness": 0.948849104859335,
+    "h_index": 13,
+    "i10_index": 16,
+    "works_count": 782,
+    "openalex_source_id": "https://openalex.org/S5407037715",
+    "display_name": "教育科学文献"
+  },
+  "modern management": {
+    "2yr_mean_citedness": 0.5087719298245614,
+    "h_index": 12,
+    "i10_index": 21,
+    "works_count": 548,
+    "openalex_source_id": "https://openalex.org/S2764548945",
+    "display_name": "Modern Management Review"
+  },
+  "工程施工与管理": {
+    "2yr_mean_citedness": 0.08325709057639524,
+    "h_index": 3,
+    "i10_index": 0,
+    "works_count": 1390,
+    "openalex_source_id": "https://openalex.org/S5407039963",
+    "display_name": "工程施工与管理"
+  },
+  "fao ebooks": {
+    "2yr_mean_citedness": 1.9119420989143547,
+    "h_index": 87,
+    "i10_index": 445,
+    "works_count": 5689,
+    "openalex_source_id": "https://openalex.org/S4306463275",
+    "display_name": "FAO eBooks"
+  },
+  "社会经济导刊": {
+    "2yr_mean_citedness": 0.09286128845037725,
+    "h_index": 5,
+    "i10_index": 1,
+    "works_count": 1723,
+    "openalex_source_id": "https://openalex.org/S5407050806",
+    "display_name": "社会经济导刊"
+  },
+  "工程与技术创新": {
+    "2yr_mean_citedness": 0.12552301255230125,
+    "h_index": 2,
+    "i10_index": 0,
+    "works_count": 239,
+    "openalex_source_id": "https://openalex.org/S5407047632",
+    "display_name": "工程与技术创新"
+  },
+  "工程建设": {
+    "2yr_mean_citedness": 0.11009174311926606,
+    "h_index": 5,
+    "i10_index": 1,
+    "works_count": 4140,
+    "openalex_source_id": "https://openalex.org/S4210205038",
+    "display_name": "工程建设"
+  },
+  "earth science-journal of china university of geosciences": {
+    "2yr_mean_citedness": 0.8272946859903382,
+    "h_index": 25,
+    "i10_index": 213,
+    "works_count": 4923,
+    "openalex_source_id": "https://openalex.org/S4210233099",
+    "display_name": "Earth Science-Journal of China University of Geosciences"
+  },
+  "acta ecologica sinica": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 38,
+    "i10_index": 1020,
+    "works_count": 9022,
+    "openalex_source_id": "https://openalex.org/S60589374",
+    "display_name": "Acta Ecologica Sinica"
+  },
+  "工程管理与技术探讨": {
+    "2yr_mean_citedness": 0.06209150326797386,
+    "h_index": 6,
+    "i10_index": 2,
+    "works_count": 8228,
+    "openalex_source_id": "https://openalex.org/S4210240253",
+    "display_name": "工程管理与技术探讨"
+  },
+  "机械与电子控制工程": {
+    "2yr_mean_citedness": 0.08065573770491803,
+    "h_index": 7,
+    "i10_index": 5,
+    "works_count": 6787,
+    "openalex_source_id": "https://openalex.org/S4210203814",
+    "display_name": "机械与电子控制工程"
+  },
+  "china accounting and finance review": {
+    "2yr_mean_citedness": 2.119047619047619,
+    "h_index": 14,
+    "i10_index": 26,
+    "works_count": 186,
+    "openalex_source_id": "https://openalex.org/S4210217054",
+    "display_name": "China Accounting and Finance Review"
+  },
+  "通信学报": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 4,
+    "i10_index": 0,
+    "works_count": 283,
+    "openalex_source_id": "https://openalex.org/S4306558907",
+    "display_name": "通信学报"
+  },
+  "数字技术与应用": {
+    "2yr_mean_citedness": 0.375,
+    "h_index": 1,
+    "i10_index": 0,
+    "works_count": 8,
+    "openalex_source_id": "https://openalex.org/S7407059003",
+    "display_name": "数字经济与信息技术应用研究"
+  },
+  "智能城市应用": {
+    "2yr_mean_citedness": 0.1888111888111888,
+    "h_index": 8,
+    "i10_index": 4,
+    "works_count": 2679,
+    "openalex_source_id": "https://openalex.org/S4210234540",
+    "display_name": "智能城市应用"
+  },
+  "现代经济管理": {
+    "2yr_mean_citedness": 1.165811965811966,
+    "h_index": 17,
+    "i10_index": 48,
+    "works_count": 1104,
+    "openalex_source_id": "https://openalex.org/S4210238722",
+    "display_name": "现代经济管理"
+  },
+  "law & social inquiry": {
+    "2yr_mean_citedness": 1.1757575757575758,
+    "h_index": 82,
+    "i10_index": 677,
+    "works_count": 2913,
+    "openalex_source_id": "https://openalex.org/S129275725",
+    "display_name": "Law & Social Inquiry"
+  },
+  "现代教育前沿": {
+    "2yr_mean_citedness": 0.7781350482315113,
+    "h_index": 10,
+    "i10_index": 12,
+    "works_count": 751,
+    "openalex_source_id": "https://openalex.org/S4210170235",
+    "display_name": "现代教育前沿"
+  },
+  "广东工业大学": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 5,
+    "i10_index": 2,
+    "works_count": 2593,
+    "openalex_source_id": "https://openalex.org/S2764452376",
+    "display_name": "Journal of Guangdong University of Technology"
+  },
+  "天津科技大学": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 4,
+    "i10_index": 2,
+    "works_count": 227,
+    "openalex_source_id": "https://openalex.org/S4306546931",
+    "display_name": "天津科技大学学报"
+  },
+  "物联网技术": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 0,
+    "i10_index": 0,
+    "works_count": 109,
+    "openalex_source_id": "https://openalex.org/S4306554551",
+    "display_name": "物联网技术"
+  },
+  "现代工业经济和信息化": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 0,
+    "i10_index": 0,
+    "works_count": 274,
+    "openalex_source_id": "https://openalex.org/S4306554728",
+    "display_name": "现代工业经济和信息化"
+  },
+  "电信科学": {
+    "2yr_mean_citedness": 0.20865384615384616,
+    "h_index": 11,
+    "i10_index": 14,
+    "works_count": 2949,
+    "openalex_source_id": "https://openalex.org/S4210228639",
+    "display_name": "电子通信与计算机科学"
+  },
+  "中国集体经济": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 0,
+    "i10_index": 0,
+    "works_count": 2209,
+    "openalex_source_id": "https://openalex.org/S4306542351",
+    "display_name": "中国集体经济"
+  },
+  "南开管理评论": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 1,
+    "i10_index": 0,
+    "works_count": 325,
+    "openalex_source_id": "https://openalex.org/S4306545086",
+    "display_name": "南开管理评论"
+  },
+  "advances in neural …": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 38,
+    "i10_index": 90,
+    "works_count": 167,
+    "openalex_source_id": "https://openalex.org/S4363606243",
+    "display_name": "neural information processing systems"
+  },
+  "proceedings of the …": {
+    "2yr_mean_citedness": 8.246130847696096,
+    "h_index": 1175,
+    "i10_index": 145138,
+    "works_count": 172272,
+    "openalex_source_id": "https://openalex.org/S125754415",
+    "display_name": "Proceedings of the National Academy of Sciences"
+  },
+  "data science and …": {
+    "2yr_mean_citedness": 3.2061579651941097,
+    "h_index": 50,
+    "i10_index": 264,
+    "works_count": 1228,
+    "openalex_source_id": "https://openalex.org/S4210195017",
+    "display_name": "International Journal of Data Science and Analytics"
+  },
+  "acm transactions on …": {
+    "2yr_mean_citedness": 5.96986301369863,
+    "h_index": 314,
+    "i10_index": 4675,
+    "works_count": 6624,
+    "openalex_source_id": "https://openalex.org/S185367456",
+    "display_name": "ACM Transactions on Graphics"
+  },
+  "计算机学报": {
+    "2yr_mean_citedness": 2.3622047244094486,
+    "h_index": 70,
+    "i10_index": 853,
+    "works_count": 3286,
+    "openalex_source_id": "https://openalex.org/S161516442",
+    "display_name": "Journal of Computer Science and Technology"
+  },
+  "工程科学与技术": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 1,
+    "i10_index": 0,
+    "works_count": 3,
+    "openalex_source_id": "https://openalex.org/S4387288976",
+    "display_name": "工程科学与技术研究"
+  },
+  "科学技术与工程": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 7,
+    "i10_index": 6,
+    "works_count": 772,
+    "openalex_source_id": "https://openalex.org/S2764559177",
+    "display_name": "Science Technology and Engineer"
+  },
+  "交通运输系统工程与信息": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 7,
+    "i10_index": 4,
+    "works_count": 346,
+    "openalex_source_id": "https://openalex.org/S4306506620",
+    "display_name": "Communication and Transportati0n Systems Engineering and Information"
+  },
+  "软件学报": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 46,
+    "i10_index": 373,
+    "works_count": 2168,
+    "openalex_source_id": "https://openalex.org/S4210224179",
+    "display_name": "Journal of Software"
+  },
+  "锻压技术": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 3,
+    "i10_index": 0,
+    "works_count": 1442,
+    "openalex_source_id": "https://openalex.org/S2764913845",
+    "display_name": "China Metal Forming Equipment & Manufacturing Technology"
+  },
+  "计算机工程与应用": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 5,
+    "i10_index": 2,
+    "works_count": 1294,
+    "openalex_source_id": "https://openalex.org/S4306515068",
+    "display_name": "Jisuanji Gongcheng yu Yingyong"
+  },
+  "计算机应用与软件": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 4,
+    "i10_index": 0,
+    "works_count": 733,
+    "openalex_source_id": "https://openalex.org/S2764447030",
+    "display_name": "Computer Applications and Software"
+  },
+  "信息与电脑": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 0,
+    "i10_index": 0,
+    "works_count": 594,
+    "openalex_source_id": "https://openalex.org/S4306543598",
+    "display_name": "信息与电脑"
+  },
+  "财经管理": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 18,
+    "i10_index": 56,
+    "works_count": 976,
+    "openalex_source_id": "https://openalex.org/S4210171802",
+    "display_name": "财经与管理"
+  },
+  "电子通信与计算机科学": {
+    "2yr_mean_citedness": 0.20865384615384616,
+    "h_index": 11,
+    "i10_index": 14,
+    "works_count": 2949,
+    "openalex_source_id": "https://openalex.org/S4210228639",
+    "display_name": "电子通信与计算机科学"
+  },
+  "学术交流": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 1,
+    "i10_index": 0,
+    "works_count": 1078,
+    "openalex_source_id": "https://openalex.org/S4306555345",
+    "display_name": "电脑知识与技术：学术交流"
+  },
+  "中国工程科学": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 8,
+    "i10_index": 7,
+    "works_count": 549,
+    "openalex_source_id": "https://openalex.org/S4306541747",
+    "display_name": "中国工程科学：英文版"
+  },
+  "仪器仪表标准化与计量": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 0,
+    "i10_index": 0,
+    "works_count": 199,
+    "openalex_source_id": "https://openalex.org/S4306543308",
+    "display_name": "仪器仪表标准化与计量"
+  },
+  "工程科学学报": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 7,
+    "i10_index": 4,
+    "works_count": 422,
+    "openalex_source_id": "https://openalex.org/S4306556629",
+    "display_name": "系统科学与系统工程学报(英文版)"
+  },
+  "经济研究导刊": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 4,
+    "i10_index": 1,
+    "works_count": 2982,
+    "openalex_source_id": "https://openalex.org/S2764599426",
+    "display_name": "Economic Research Guide"
+  },
+  "iet blockchain": {
+    "2yr_mean_citedness": 3.9381443298969074,
+    "h_index": 18,
+    "i10_index": 29,
+    "works_count": 163,
+    "openalex_source_id": "https://openalex.org/S4210204386",
+    "display_name": "IET Blockchain"
+  },
+  "expert systems with applications": {
+    "2yr_mean_citedness": 7.0879694717814825,
+    "h_index": 348,
+    "i10_index": 19482,
+    "works_count": 31906,
+    "openalex_source_id": "https://openalex.org/S13144211",
+    "display_name": "Expert Systems with Applications"
+  },
+  "acm computing surveys": {
+    "2yr_mean_citedness": 22.060022650056624,
+    "h_index": 329,
+    "i10_index": 2660,
+    "works_count": 3805,
+    "openalex_source_id": "https://openalex.org/S157921468",
+    "display_name": "ACM Computing Surveys"
+  },
+  "重庆邮电大学学报（自然科学版）": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 8,
+    "i10_index": 7,
+    "works_count": 3449,
+    "openalex_source_id": "https://openalex.org/S2764476757",
+    "display_name": "Journal of Chongqing University of Posts and Telecommunications"
+  },
+  "计算机系统应用": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 2,
+    "i10_index": 0,
+    "works_count": 345,
+    "openalex_source_id": "https://openalex.org/S4306558349",
+    "display_name": "计算机系统应用"
+  },
+  "食品安全导刊": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 0,
+    "i10_index": 0,
+    "works_count": 1057,
+    "openalex_source_id": "https://openalex.org/S4306560174",
+    "display_name": "食品安全导刊"
+  },
+  "系统工程理论与实践": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 0,
+    "i10_index": 0,
+    "works_count": 372,
+    "openalex_source_id": "https://openalex.org/S4306556622",
+    "display_name": "系统工程理论与实践"
+  },
+  "兰台内外": {
+    "2yr_mean_citedness": 0.0,
+    "h_index": 0,
+    "i10_index": 0,
+    "works_count": 648,
+    "openalex_source_id": "https://openalex.org/S4306543896",
+    "display_name": "兰台内外"
+  },
+  "apress ebooks": {
+    "2yr_mean_citedness": 0.23985049619796364,
+    "h_index": 96,
+    "i10_index": 1299,
+    "works_count": 73950,
+    "openalex_source_id": "https://openalex.org/S4306462844",
+    "display_name": "Apress eBooks"
+  },
+  "web3": {
+    "2yr_mean_citedness": 0.6818181818181818,
+    "h_index": 2,
+    "i10_index": 0,
+    "works_count": 22,
+    "openalex_source_id": "https://openalex.org/S5407036537",
+    "display_name": "Web3 Journal ML in Health Science"
+  },
+  "journal of business research": {
+    "2yr_mean_citedness": 9.788854489164086,
+    "h_index": 399,
+    "i10_index": 9349,
+    "works_count": 13068,
+    "openalex_source_id": "https://openalex.org/S93284759",
+    "display_name": "Journal of Business Research"
+  },
+  "ieee intelligent systems": {
+    "2yr_mean_citedness": 2.073972602739726,
+    "h_index": 148,
+    "i10_index": 1239,
+    "works_count": 3270,
+    "openalex_source_id": "https://openalex.org/S114241109",
+    "display_name": "IEEE Intelligent Systems"
+  }
+}

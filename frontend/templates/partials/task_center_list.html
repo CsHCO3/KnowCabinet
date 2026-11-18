@@ -1,0 +1,21 @@
+{% if tasks %}
+  <div class="list-group">
+    {% for t in tasks %}
+    <div class="list-group-item d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="badge bg-light text-dark border">{{ t.type }}</span>
+        <span class="fw-medium small">{{ t.title }}</span>
+        {% if t.status == "running" %}<span class="badge bg-warning text-dark">🟡 进行中</span>
+        {% elif t.status == "completed" %}<span class="badge bg-success">✅ 完成</span>
+        {% elif t.status == "failed" %}<span class="badge bg-danger">❌ 失败</span>
+        {% elif t.status == "cancelled" %}<span class="badge bg-secondary">🚫 取消</span>
+        {% else %}<span class="badge bg-secondary">⏸ 排队</span>{% endif %}
+        {% if t.error %}<small class="text-danger">{{ t.error }}</small>{% endif %}
+      </div>
+      <small class="text-muted">{{ (t.created_at or '')[:16] }}</small>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="text-center text-muted py-4"><p>暂无任务</p></div>
+{% endif %}

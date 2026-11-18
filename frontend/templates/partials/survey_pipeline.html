@@ -1,0 +1,42 @@
+<div>
+  <div class="card mb-3">
+    <div class="card-body">
+      <h6 class="mb-2">📊 {{ task.title or ('调研 ' + task.id) }}</h6>
+      {% for stage in task.stages %}
+        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+          {% if stage.status == "completed" %}
+            <span class="badge bg-success">✅ {{ stage.label }}</span>
+          {% elif stage.status == "running" %}
+            <span class="badge bg-warning text-dark">🔄 {{ stage.label }}</span>
+          {% elif stage.status == "failed" %}
+            <span class="badge bg-danger">❌ {{ stage.label }}</span>
+          {% elif stage.status == "skipped" %}
+            <span class="badge bg-secondary">⏭ {{ stage.label }}</span>
+          {% else %}
+            <span class="badge bg-light text-muted">⏸ {{ stage.label }}</span>
+          {% endif %}
+          {% if stage.status == "running" %}
+            <div class="progress flex-grow-1" style="height:10px;min-width:120px">
+              <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:{{ stage.progress }}%"></div>
+            </div>
+          {% endif %}
+          <small class="text-muted">
+            {{ stage.detail }}{% if stage.error %} <span class="text-danger">（{{ stage.error }}）</span>{% endif %}
+          </small>
+          {% if stage.remote_job_id %}
+            <a href="/tasks" class="small text-primary" title="查看远程任务">job {{ stage.remote_job_id }}</a>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      {% if task.status == "running" %}
+        <div hx-get="/api/surveys/{{ task.id }}/progress" hx-trigger="every 3s"
+             hx-target="#survey-result" hx-swap="innerHTML"></div>
+      {% endif %}
+      {% if task.status == "completed" %}
+        <div hx-get="/api/surveys/{{ task.id }}" hx-trigger="load"
+             hx-target="#survey-result" hx-swap="innerHTML"></div>
+      {% endif %}
+    </div>
+  </div>
+</div>

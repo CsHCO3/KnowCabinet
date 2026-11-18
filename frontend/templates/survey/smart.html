@@ -1,0 +1,579 @@
+{% extends "base.html" %}
+{% block title %}智能搜索 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mb-4">🧠 智能搜索</h2>
+
+  <!-- ── AI 输入区 ── -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <label class="form-label fw-semibold">描述你的研究主题</label>
+      <textarea id="ai-input" class="form-control mb-2" rows="3" placeholder="粘贴你的研究主题描述，例如：我要找大语言模型在医疗领域应用的综述论文，重点关注 2024 年以后发表的..."></textarea>
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <input type="file" id="md-file" class="form-control form-control-sm" style="width:auto" accept=".md">
+        <span class="text-muted small">或上传 .md 文件</span>
+      </div>
+      <button id="btn-ai-parse" class="btn btn-primary" onclick="aiParse()">
+        <span id="ai-spinner" class="spinner-border spinner-border-sm d-none"></span>
+        🤖 AI 解析
+      </button>
+    </div>
+  </div>
+
+  <!-- AI 输出 -->
+  <div id="ai-output-area" class="mb-3 d-none">
+    <div class="card border-success">
+      <div class="card-body">
+        <h6 class="mb-2 text-success">🤖 AI 解析结果</h6>
+        <div id="ai-explanation-text" class="small mb-0"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 模式切换 ── -->
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <div class="d-flex gap-4">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="searchMode" id="mode-complex" value="complex" onchange="setMode('complex')">
+          <label class="form-check-label fw-semibold" for="mode-complex">① 复杂表达式</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="searchMode" id="mode-simple" value="simple" onchange="setMode('simple')">
+          <label class="form-check-label fw-semibold" for="mode-simple">② 简单条件</label>
+        </div>
+        <div class="text-muted small align-self-center" id="mode-hint">选择一个模式开始构建查询</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ① 复杂表达式 / ② 简单条件 ── -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <!-- ① 复杂表达式 -->
+      <div id="panel-complex" class="d-none">
+        <label class="form-label fw-semibold">
+          ① 复杂搜索条件
+          <span id="syntax-badge" class="badge bg-secondary ms-2">未检查</span>
+        </label>
+        <textarea id="complex-input" class="form-control font-monospace" rows="3"
+          placeholder='(all:"privacy" OR all:"security") AND ti:"blockchain" AND (cat:cs.CR OR cat:cs.NI)'
+          oninput="onComplexInput()"></textarea>
+        <div id="syntax-errors" class="mt-1 small text-danger"></div>
+        <div class="form-text small">
+          支持 all:(全文) ti:(标题) au:(作者) abs:(摘要) cat:(分类)。支持 AND/OR/NOT 和括号。
+        </div>
+      </div>
+
+      <!-- ② 简单条件 -->
+      <div id="panel-simple" class="d-none">
+        <label class="form-label fw-semibold mb-2">② 简单搜索条件（AND 连接，空值忽略）</label>
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label small">全文</label>
+            <input type="text" id="simple-keywords" class="form-control form-control-sm" placeholder="关键词" oninput="onSimpleInput()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">标题</label>
+            <input type="text" id="simple-title" class="form-control form-control-sm" placeholder="标题词" oninput="onSimpleInput()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">作者</label>
+            <input type="text" id="simple-author" class="form-control form-control-sm" placeholder="作者名" oninput="onSimpleInput()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">摘要</label>
+            <input type="text" id="simple-abstract" class="form-control form-control-sm" placeholder="摘要词" oninput="onSimpleInput()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">
+              分类
+              <a href="#" class="text-decoration-none small" onclick="toggleCatRef(); return false;">📖</a>
+            </label>
+            <input type="text" id="simple-category" class="form-control form-control-sm" placeholder="cs.CL" oninput="onSimpleInput()">
+          </div>
+        </div>  <!-- /row g-2 -->
+          <div class="col-12 small text-danger" id="simple-errors"></div>
+          <div class="col-12 d-none" id="cat-reference">
+            <hr class="my-2">
+            <div class="small">
+              <div class="row row-cols-2 row-cols-md-3 g-1">
+                <div class="col"><code>cs.AI</code> 人工智能</div>
+                <div class="col"><code>cs.CL</code> 计算语言学/NLP</div>
+                <div class="col"><code>cs.CR</code> 密码学/安全</div>
+                <div class="col"><code>cs.CV</code> 计算机视觉</div>
+                <div class="col"><code>cs.DB</code> 数据库</div>
+                <div class="col"><code>cs.DC</code> 分布式计算</div>
+                <div class="col"><code>cs.DS</code> 数据结构/算法</div>
+                <div class="col"><code>cs.GT</code> 博弈论/机制设计</div>
+                <div class="col"><code>cs.HC</code> 人机交互</div>
+                <div class="col"><code>cs.IR</code> 信息检索</div>
+                <div class="col"><code>cs.IT</code> 信息论</div>
+                <div class="col"><code>cs.LG</code> 机器学习</div>
+                <div class="col"><code>cs.MA</code> 多智能体系统</div>
+                <div class="col"><code>cs.NI</code> 网络/互联网</div>
+                <div class="col"><code>cs.SE</code> 软件工程</div>
+                <div class="col"><code>cs.SY</code> 系统与控制</div>
+                <div class="col"><code>math.*</code> 数学</div>
+                <div class="col"><code>stat.*</code> 统计学</div>
+                <div class="col"><code>eess.*</code> 电气工程/信号</div>
+                <div class="col"><code>q-bio.*</code> 定量生物学</div>
+                <div class="col"><code>q-fin.*</code> 定量金融</div>
+                <div class="col"><code>econ.*</code> 经济学</div>
+              </div>
+            </div>
+          </div>
+        </div>  <!-- /panel-simple -->
+      </div>  <!-- /card-body (模式选择卡片) -->
+    </div>  <!-- /card (模式选择卡片) -->
+
+  <!-- ── 完整表达式预览 ── -->
+  <div class="card mb-3" id="preview-card">
+    <div class="card-body">
+      <label class="form-label fw-semibold mb-1">搜索表达式预览</label>
+      <div class="d-flex align-items-center gap-2">
+        <code class="flex-grow-1 p-2 bg-light rounded small" id="full-preview" style="word-break:break-all;">
+          search_query=...&amp;sortBy=...
+        </code>
+        <button class="btn btn-sm btn-outline-secondary" onclick="copyPreview()">📋</button>
+      </div>
+      <div class="form-text small text-muted">
+        此表达式会传递给快速测试和开始调研页面。执行时后端自动插入 &amp;start= 参数。
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 参数选项 ── -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <h6 class="fw-semibold mb-2">参数选项</h6>
+
+      <!-- 语法检查消息 -->
+      <div id="param-errors" class="small text-danger mb-1"></div>
+
+      <!-- 输入选项 -->
+      <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label small">起始日期</label>
+          <input type="date" id="param-date-from" class="form-control form-control-sm" oninput="onParamChange()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">截止日期</label>
+          <input type="date" id="param-date-to" class="form-control form-control-sm" oninput="onParamChange()">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small">排序方式</label>
+          <select id="param-sort-by" class="form-select form-select-sm" onchange="onParamChange()">
+            <option value="relevance">相关度</option>
+            <option value="submittedDate">提交日期</option>
+            <option value="lastUpdatedDate">更新日期</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small">排序顺序</label>
+          <select id="param-sort-order" class="form-select form-select-sm" onchange="onParamChange()">
+            <option value="descending">降序</option>
+            <option value="ascending">升序</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small">每页结果数</label>
+          <input type="number" id="param-max-results" class="form-control form-control-sm" value="10" min="1" max="200" oninput="onParamChange()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 操作按钮 ── -->
+  <div class="d-flex gap-3 mb-4">
+    <a id="btn-quick-test" href="/survey/quick-test" class="btn btn-outline-primary">⚡ 快速测试</a>
+    <a id="btn-start-survey" href="/survey/start" class="btn btn-primary">🚀 开始调研</a>
+  </div>
+
+  <div id="parse-error" class="alert alert-danger d-none"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ═══════════════════════════════════════════════════
+// 状态
+// ═══════════════════════════════════════════════════
+let _mode = null;          // null | 'complex' | 'simple'
+let _suppressSync = false;
+
+// ═══════════════════════════════════════════════════
+// 语法检查 — ① 复杂表达式
+// ═══════════════════════════════════════════════════
+
+const VALID_PREFIXES = ['all:', 'ti:', 'au:', 'abs:', 'cat:', 'submitteddate:'];
+const VALID_CATEGORIES = new Set([
+  'cs.AI','cs.AR','cs.CC','cs.CE','cs.CG','cs.CL','cs.CR','cs.CV','cs.CY',
+  'cs.DB','cs.DC','cs.DL','cs.DS','cs.ET','cs.FL','cs.GL','cs.GR','cs.GT',
+  'cs.HC','cs.IR','cs.IT','cs.LG','cs.LO','cs.MA','cs.MM','cs.MS','cs.NA',
+  'cs.NE','cs.NI','cs.OH','cs.OS','cs.PF','cs.PL','cs.RO','cs.SC','cs.SD',
+  'cs.SE','cs.SI','cs.SY',
+  'math.*','stat.*','q-bio.*','q-fin.*','econ.*','eess.*',
+  'physics.*','astro-ph.*','cond-mat.*','gr-qc.*','hep-ex.*','hep-th.*',
+  'quant-ph.*','nlin.*','nucl-ex.*','nucl-th.*',
+]);
+
+function validateQuery(q) {
+  const errors = [];
+  if (!q.trim()) return { valid: true, errors: [] };
+
+  // 引号成对
+  const quotes = q.match(/"/g);
+  if (quotes && quotes.length % 2 !== 0) {
+    errors.push({ type: 'quote', msg: '❌ 引号不成对' });
+  }
+
+  // 括号匹配
+  let depth = 0;
+  for (const ch of q) {
+    if (ch === '(') depth++;
+    if (ch === ')') depth--;
+    if (depth < 0) { errors.push({ type: 'paren', msg: '❌ 括号不匹配（多余右括号）' }); break; }
+  }
+  if (depth > 0) errors.push({ type: 'paren', msg: '❌ 括号不匹配（缺少右括号）' });
+
+  // 日期格式
+  const dateMatches = q.match(/submittedDate:\[(\d{8})\s+TO\s+(\d{8})\]/g);
+  if (dateMatches) {
+    for (const dm of dateMatches) {
+      const m = dm.match(/\[(\d{8})\s+TO\s+(\d{8})\]/);
+      if (m) {
+        const d1 = parseInt(m[1].substring(0,4)), m1 = parseInt(m[1].substring(4,6)), dd1 = parseInt(m[1].substring(6,8));
+        const d2 = parseInt(m[2].substring(0,4)), m2 = parseInt(m[2].substring(4,6)), dd2 = parseInt(m[2].substring(6,8));
+        if (m1 < 1 || m1 > 12 || dd1 < 1 || dd1 > 31) errors.push({ type: 'date', msg: `❌ 起始日期非法: ${m[1]}` });
+        if (m2 < 1 || m2 > 12 || dd2 < 1 || dd2 > 31) errors.push({ type: 'date', msg: `❌ 截止日期非法: ${m[2]}` });
+      }
+    }
+  }
+
+  // 分类是否存在
+  const catMatches = q.match(/cat:(\S+?)(?:\s|$|\))/g);
+  if (catMatches) {
+    for (const cm of catMatches) {
+      const code = cm.replace('cat:', '').trim();
+      if (code && !VALID_CATEGORIES.has(code) && !code.match(/^(cat:)?/)) {
+        // 简化检查：只报明显不合理的
+        if (code.length > 2 && !code.includes('.')) {
+          errors.push({ type: 'category', msg: `⚠️ 分类 "${code}" 格式不标准（应为 大类.子类）` });
+        }
+      }
+    }
+  }
+
+  // 字段名是否合法
+  const fieldMatches = q.match(/\b[a-zA-Z]+:/g);
+  if (fieldMatches) {
+    for (const f of fieldMatches) {
+      if (!VALID_PREFIXES.includes(f.toLowerCase())) {
+        errors.push({ type: 'field', msg: `❌ 不认识的字段前缀: ${f}（支持: ${VALID_PREFIXES.join(', ')}）` });
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+// ═══════════════════════════════════════════════════
+// 模式切换
+// ═══════════════════════════════════════════════════
+
+function setMode(mode) {
+  _mode = mode;
+  document.getElementById('panel-complex').classList.toggle('d-none', mode !== 'complex');
+  document.getElementById('panel-simple').classList.toggle('d-none', mode !== 'simple');
+
+  if (mode === 'complex') {
+    document.getElementById('mode-hint').textContent = '编辑复杂表达式，支持 AND/OR/括号/字段前缀';
+    document.getElementById('mode-complex').checked = true;
+    // 恢复 ① 可编辑
+    document.getElementById('complex-input').readOnly = false;
+    // 锁定②：清空简单条件
+    ['keywords','title','author','abstract','category'].forEach(f => {
+      document.getElementById('simple-' + f).value = '';
+      document.getElementById('simple-' + f).disabled = true;
+    });
+    // 从 ① 刷新预览
+    onComplexInput();
+  } else if (mode === 'simple') {
+    document.getElementById('mode-hint').textContent = '填写条件后自动 AND 连接，空值忽略';
+    document.getElementById('mode-simple').checked = true;
+    // ① 被清空锁定，以后随②变化（只读由 JS 设置）
+    document.getElementById('complex-input').value = '';
+    document.getElementById('complex-input').readOnly = true;
+    document.getElementById('syntax-badge').className = 'badge bg-secondary ms-2';
+    document.getElementById('syntax-badge').textContent = '由②生成';
+    document.getElementById('syntax-errors').textContent = '';
+    ['keywords','title','author','abstract','category'].forEach(f => {
+      document.getElementById('simple-' + f).disabled = false;
+    });
+    onSimpleInput();
+  } else {
+    document.getElementById('mode-hint').textContent = '选择一个模式开始构建查询';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ① → 输入与语法检查
+// ═══════════════════════════════════════════════════
+
+function onComplexInput() {
+  if (_mode !== 'complex') return;
+  const q = document.getElementById('complex-input').value;
+  const result = validateQuery(q);
+  const badge = document.getElementById('syntax-badge');
+  const errDiv = document.getElementById('syntax-errors');
+
+  if (!q.trim()) {
+    badge.className = 'badge bg-secondary ms-2';
+    badge.textContent = '未检查';
+    errDiv.textContent = '';
+  } else if (result.valid) {
+    badge.className = 'badge bg-success ms-2';
+    badge.textContent = '✅ 语法正确';
+    errDiv.textContent = '';
+  } else {
+    badge.className = 'badge bg-danger ms-2';
+    badge.textContent = `❌ ${result.errors.length} 个问题`;
+    errDiv.innerHTML = result.errors.map(e => '<div>' + e.msg + '</div>').join('');
+  }
+  updatePreview();
+}
+
+// ═══════════════════════════════════════════════════
+// ② → 构建查询
+// ═══════════════════════════════════════════════════
+
+function onSimpleInput() {
+  if (_mode !== 'simple') return;
+  const f = id => document.getElementById('simple-' + id).value.trim();
+  const errDiv = document.getElementById('simple-errors');
+  errDiv.textContent = '';
+
+  const parts = [];
+  const kw = f('keywords');
+  const ti = f('title');
+  const au = f('author');
+  const ab = f('abstract');
+  const ca = f('category');
+
+  // 逐字段验证
+  if (ca && !ca.match(/^[a-z]+\.[A-Za-z0-9]+$/)) {
+    errDiv.textContent += '⚠️ 分类格式不标准，应为 大类.子类 如 cs.CL\n';
+  }
+
+  if (kw) parts.push('all:"' + kw + '"');
+  if (ti) parts.push('ti:"' + ti + '"');
+  if (au) parts.push('au:"' + au + '"');
+  if (ab) parts.push('abs:"' + ab + '"');
+  if (ca) parts.push('cat:' + ca);
+
+  const query = parts.join(' AND ');
+  _suppressSync = true;
+  document.getElementById('complex-input').value = query;
+  _suppressSync = false;
+
+  // 对生成的查询也做完整语法检查
+  if (query) {
+    const vr = validateQuery(query);
+    if (!vr.valid) {
+      errDiv.textContent = errDiv.textContent || '';
+      for (const e of vr.errors) {
+        errDiv.textContent += e.msg + '\n';
+      }
+    }
+  }
+
+  updatePreview();
+}
+
+// ═══════════════════════════════════════════════════
+// 参数 → 预览
+// ═══════════════════════════════════════════════════
+
+function onParamChange() {
+  const errDiv = document.getElementById('param-errors');
+  errDiv.textContent = '';
+
+  const df = document.getElementById('param-date-from').value;
+  const dt = document.getElementById('param-date-to').value;
+
+  if (df && dt) {
+    if (df > dt) {
+      errDiv.textContent = '⚠️ 起始日期晚于截止日期';
+    }
+  }
+
+  const mr = parseInt(document.getElementById('param-max-results').value);
+  if (mr < 1 || mr > 200) {
+    errDiv.textContent = '⚠️ 结果数应在 1-200 之间';
+  }
+
+  updatePreview();
+}
+
+function buildParamString() {
+  const df = document.getElementById('param-date-from').value;
+  const dt = document.getElementById('param-date-to').value;
+  const sb = document.getElementById('param-sort-by').value;
+  const so = document.getElementById('param-sort-order').value;
+  const mr = document.getElementById('param-max-results').value;
+
+  let parts = [];
+  if (df || dt) {
+    const d1 = df ? df.replace(/-/g, '') : '00000101';
+    const d2 = dt ? dt.replace(/-/g, '') : '99991231';
+    parts.push('submittedDate:[' + d1 + ' TO ' + d2 + ']');
+  }
+  if (sb !== 'relevance') parts.push('sortBy=' + sb);
+  if (so !== 'descending') parts.push('sortOrder=' + so);
+  if (mr !== '10') parts.push('maxResults=' + mr);
+
+  return parts.join('&');
+}
+
+function buildParamPreview() {
+  const df = document.getElementById('param-date-from').value;
+  const dt = document.getElementById('param-date-to').value;
+  const sb = document.getElementById('param-sort-by').value;
+  const so = document.getElementById('param-sort-order').value;
+  const mr = document.getElementById('param-max-results').value;
+
+  let parts = [];
+  const d1 = df || 'YYYYMMDD';
+  const d2 = dt || 'YYYYMMDD';
+  parts.push(':[' + d1.replace(/-/g,'') + ' TO ' + d2.replace(/-/g,'') + ']&');
+  parts.push('sortBy=' + sb);
+  parts.push('sortOrder=' + so);
+  parts.push('maxResults=' + mr);
+
+  return parts.join('&');
+}
+
+// ═══════════════════════════════════════════════════
+// 完整预览 + 导航
+// ═══════════════════════════════════════════════════
+
+function updatePreview() {
+  // 构建搜索条件部分
+  const complex = document.getElementById('complex-input').value.trim();
+
+  // 构建参数部分
+  const df = document.getElementById('param-date-from').value;
+  const dt = document.getElementById('param-date-to').value;
+  const sb = document.getElementById('param-sort-by').value;
+  const so = document.getElementById('param-sort-order').value;
+  const mr = document.getElementById('param-max-results').value;
+
+  // 参数预览（已合并到完整表达式，此处跳过）
+  // 完整表达式
+  let paramStr = '';
+  if (df || dt) {
+    const d1 = df ? df.replace(/-/g, '') : '00000101';
+    const d2 = dt ? dt.replace(/-/g, '') : '99991231';
+    paramStr += 'submittedDate:[' + d1 + ' TO ' + d2 + ']';
+  }
+  if (sb !== 'relevance' || so !== 'descending' || mr !== '10') {
+    if (paramStr) paramStr += '&';
+    paramStr += 'sortBy=' + sb + '&sortOrder=' + so + '&maxResults=' + mr;
+  }
+
+  let full = complex;
+  if (paramStr) {
+    full += '&' + paramStr;
+  }
+  if (!full) full = 'search_query=...&sortBy=...';
+
+  document.getElementById('full-preview').textContent = full;
+  updateNavLinks(full);
+}
+
+function updateNavLinks(full) {
+  const encoded = encodeURIComponent(full);
+  document.getElementById('btn-quick-test').href = '/survey/quick-test?raw_query=' + encoded;
+  document.getElementById('btn-start-survey').href = '/survey/start?raw_query=' + encoded;
+}
+
+function toggleCatRef() {
+  const el = document.getElementById('cat-reference');
+  el.classList.toggle('d-none');
+}
+
+function copyPreview() {
+  const text = document.getElementById('full-preview').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('#preview-card .btn');
+    btn.textContent = '✅';
+    setTimeout(() => btn.textContent = '📋', 1500);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// AI 解析
+// ═══════════════════════════════════════════════════
+
+function aiParse() {
+  const text = document.getElementById('ai-input').value.trim();
+  const fileInput = document.getElementById('md-file');
+  const files = fileInput.files;
+
+  if (!text && (!files || files.length === 0)) {
+    alert('请先输入研究描述或选择 .md 文件');
+    return;
+  }
+
+  const btn = document.getElementById('btn-ai-parse');
+  const spinner = document.getElementById('ai-spinner');
+  btn.disabled = true;
+  spinner.classList.remove('d-none');
+
+  const formData = new FormData();
+  if (text) formData.append('text', text);
+  if (files && files.length > 0) formData.append('md_file', files[0]);
+
+  fetch('/api/arxiv/parse-query', { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+      if (data.raw_query) {
+        // 切换到复杂模式
+        document.getElementById('mode-complex').checked = true;
+        setMode('complex');
+        document.getElementById('complex-input').value = data.raw_query;
+        document.getElementById('ai-explanation-text').textContent = data.explanation || '（无解释）';
+        document.getElementById('ai-output-area').classList.remove('d-none');
+        onComplexInput();
+      } else {
+        showError(data.explanation || 'AI 解析失败');
+      }
+    })
+    .catch(err => showError('请求失败: ' + err.message))
+    .finally(() => {
+      btn.disabled = false;
+      spinner.classList.add('d-none');
+    });
+}
+
+function showError(msg) {
+  const el = document.getElementById('parse-error');
+  el.textContent = msg;
+  el.classList.remove('d-none');
+  setTimeout(() => el.classList.add('d-none'), 5000);
+}
+
+// ═══════════════════════════════════════════════════
+// 初始化
+// ═══════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', function() {
+  // 默认复杂模式未启用，无模式
+  document.getElementById('panel-complex').classList.add('d-none');
+  document.getElementById('panel-simple').classList.add('d-none');
+  updatePreview();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% if tasks %}
+  <div class="list-group">
+    {% for t in tasks %}
+    <div class="list-group-item d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        {% if t.status == "running" %}<span class="badge bg-warning text-dark">🟡 运行中</span>
+        {% elif t.status == "pending" %}<span class="badge bg-secondary">⏸ 排队</span>
+        {% elif t.status == "completed" %}<span class="badge bg-success">✅ 完成</span>
+        {% elif t.status == "failed" %}<span class="badge bg-danger">❌ 失败</span>
+        {% else %}<span class="badge bg-secondary">🚫 取消</span>{% endif %}
+        <span class="small text-muted">{{ t.id }}</span>
+        {% if t.progress %}<span class="small">{{ t.progress }}</span>{% endif %}
+        {% if t.error %}<small class="text-danger">{{ t.error }}</small>{% endif %}
+      </div>
+      <small class="text-muted">{{ (t.created_at or '')[:16] }}</small>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="text-center text-muted py-4"><p>暂无 OCR 任务</p></div>
+{% endif %}

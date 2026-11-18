@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% block title %}B站问答 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mb-4">B站视频问答</h2>
+
+  <!-- 第一行：问答设置 | 任务记录 -->
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header py-1"><small class="fw-semibold">问答设置</small></div>
+        <div class="card-body py-2">
+          <div class="mb-1">
+            <label class="form-label small mb-0">你的问题</label>
+            <textarea id="query-prompt" class="form-control form-control-sm" rows="2"
+                      placeholder="输入你想问的内容..."
+                      oninput="updateQueryBtn()"></textarea>
+          </div>
+          <div class="row g-1 mb-1">
+            <div class="col-5">
+              <label class="form-label small mb-0">提示词文件（可选）</label>
+              <input type="text" id="prompt-file" class="form-control form-control-sm"
+                     placeholder="backend/.../xxx.txt">
+            </div>
+            <div class="col-3">
+              <label class="form-label small mb-0">筛选模式</label>
+              <select id="filter-mode" class="form-select form-select-sm">
+                <option value="keyword">关键词</option>
+                <option value="keyword_llm">关键词+LLM</option>
+              </select>
+            </div>
+            <div class="col-4">
+              <label class="form-label small mb-0">关键词</label>
+              <input type="text" id="query-keyword" class="form-control form-control-sm" placeholder="可选">
+            </div>
+          </div>
+          <input type="hidden" id="selected-video-ids" value="[]">
+          <button class="btn btn-primary btn-sm w-100" id="query-btn" disabled
+                  onclick="runQuery()">开始问答 (0 个视频)</button>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header py-1 d-flex justify-content-between align-items-center">
+          <small class="fw-semibold">问答任务记录</small>
+          <button class="btn btn-sm btn-outline-secondary py-0" onclick="loadHistory()">刷新</button>
+        </div>
+        <div class="card-body p-0" style="max-height: 200px; overflow-y: auto;">
+          <table class="table table-sm mb-0">
+            <thead class="table-light small">
+              <tr>
+                <th>#</th>
+                <th>问题</th>
+                <th style="width:50px">视频</th>
+                <th style="width:50px">状态</th>
+                <th style="width:80px">时间</th>
+                <th style="width:60px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="history-body">
+              <tr><td colspan="6" class="text-center text-muted py-2"><small>加载中...</small></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 问答结果（全宽） -->
+  <div class="card mb-3" id="query-result" style="display:none">
+    <div class="card-header py-1 d-flex justify-content-between align-items-center">
+      <span><small class="fw-semibold">问答结果</small></span>
+      <div>
+        <span id="result-video-info" class="text-muted small me-2"></span>
+        <button class="btn btn-sm btn-outline-secondary py-0" onclick="clearResult()">关闭</button>
+      </div>
+    </div>
+    <div class="card-body py-2 ps-3">
+      <div id="result-used-videos" class="small text-muted mb-1"></div>
+      <div id="query-result-body"
+           style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-size: 0.85rem; font-family: monospace;">
+      </div>
+    </div>
+  </div>
+
+  <!-- 已提取的视频列表（全宽） -->
+  <div class="card">
+    <div class="card-header py-1 d-flex justify-content-between align-items-center">
+      <small class="fw-semibold">已提取的视频</small>
+      <form class="row g-1 align-items-end" hx-get="/api/bilibili/query/videos"
+            hx-target="#query-video-table" hx-trigger="submit" hx-swap="outerHTML">
+        <div class="col-auto">
+          <input type="text" name="keyword" class="form-control form-control-sm" placeholder="关键词" style="width:100px">
+        </div>
+        <div class="col-auto">
+          <input type="text" name="author" class="form-control form-control-sm" placeholder="作者" style="width:100px">
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-sm btn-outline-secondary">筛选</button>
+        </div>
+      </form>
+    </div>
+    <div class="card-body p-0">
+      <div id="query-video-table"
+           hx-get="/api/bilibili/query/videos"
+           hx-trigger="load"
+           hx-target="#query-video-table"
+           hx-swap="outerHTML">
+        <div class="text-center text-muted py-3"><small>加载中...</small></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 摘要弹窗 -->
+<div class="modal fade" id="summary-modal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header py-1">
+        <span class="modal-title small fw-semibold">视频摘要</span>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="summary-modal-body"
+           style="white-space: pre-wrap; font-size: 0.85rem; max-height: 70vh; overflow-y: auto;">
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateQueryBtn() {
+  const ids = JSON.parse(document.getElementById('selected-video-ids')?.value || '[]');
+  const prompt = document.getElementById('query-prompt')?.value.trim() || '';
+  const btn = document.getElementById('query-btn');
+  if (btn) {
+    btn.textContent = `开始问答 (${ids.length} 个视频)`;
+    btn.disabled = ids.length === 0 || !prompt;
+  }
+}
+
+function showSummary(videoId) {
+  const el = document.getElementById('sum-full-' + videoId);
+  if (!el) return;
+  document.getElementById('summary-modal-body').textContent = el.textContent.trim();
+  new bootstrap.Modal(document.getElementById('summary-modal')).show();
+}
+
+function confirmQDelete(videoId, bvid) {
+  if (!confirm(`确定删除 ${bvid}？`)) return;
+  fetch(`/api/bilibili/videos/${videoId}?cleanup_files=true`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        // 重新加载视频列表
+        htmx.ajax('GET', '/api/bilibili/query/videos', {
+          target: '#query-video-table', swap: 'outerHTML',
+        });
+      }
+    });
+}
+
+// ── 运行问答 ──
+function runQuery() {
+  const videoIds = JSON.parse(document.getElementById('selected-video-ids').value || '[]');
+  const prompt = document.getElementById('query-prompt').value.trim();
+  if (videoIds.length === 0 || !prompt) return;
+
+  const btn = document.getElementById('query-btn');
+  btn.disabled = true;
+  btn.textContent = '进行中...';
+
+  const resultDiv = document.getElementById('query-result');
+  const resultBody = document.getElementById('query-result-body');
+  resultDiv.style.display = 'block';
+  resultBody.textContent = '正在处理...';
+
+  // 显示选中的视频列表
+  showUsedVideos(videoIds);
+
+  fetch('/api/bilibili/query/run', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      video_ids: videoIds,
+      prompt: prompt,
+      prompt_file_path: document.getElementById('prompt-file').value.trim(),
+      filter_mode: document.getElementById('filter-mode').value,
+      keyword: document.getElementById('query-keyword').value.trim(),
+    }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('result-video-info').textContent = `(#${data.data.task_id})`;
+        pollQueryResult(data.data.task_id, resultBody);
+      } else {
+        resultBody.textContent = '错误: ' + (data.error || '');
+        btn.disabled = false;
+        btn.textContent = '重试';
+      }
+    })
+    .catch(e => {
+      resultBody.textContent = '请求失败: ' + e.message;
+      btn.disabled = false;
+      btn.textContent = '重试';
+    });
+}
+
+function showUsedVideos(videoIds) {
+  // 支持两种格式: [1,2,3] 或 [{id,bvid,title,author}, ...]
+  const container = document.getElementById('result-used-videos');
+  if (!videoIds || videoIds.length === 0) { container.textContent = ''; return; }
+
+  // 如果是对象数组（含 title/author）
+  if (typeof videoIds[0] === 'object') {
+    container.innerHTML = '<strong>实际使用的视频（通过筛选）：</strong>' +
+      videoIds.map(v => {
+        const label = (v.title || v.bvid || '').slice(0, 25);
+        const author = v.author ? ` [${v.author}]` : '';
+        return `<span class="badge bg-info text-dark me-1 mb-1" title="${v.title || ''}">${label}${author}</span>`;
+      }).join('');
+    return;
+  }
+
+  // 如果是数字数组（所选视频的 DB ID），从页面 checkbox 查找标题
+  const titles = [];
+  document.querySelectorAll('.q-video-check').forEach(cb => {
+    if (videoIds.includes(parseInt(cb.value))) {
+      titles.push(cb.dataset.title || cb.value);
+    }
+  });
+  if (titles.length > 0) {
+    container.innerHTML = '<strong>选中视频：</strong>' + titles.map(t =>
+      `<span class="badge bg-secondary me-1">${t.length > 20 ? t.slice(0, 20)+'…' : t}</span>`
+    ).join('');
+  }
+}
+
+function pollQueryResult(taskId, resultBody) {
+  fetch(`/api/bilibili/query/tasks/${taskId}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.success && data.data) {
+        const task = data.data;
+        if (task.status === 'completed') {
+          resultBody.textContent = task.result_text || '(无结果)';
+          // 显示实际使用的视频
+          if (task.used_videos && task.used_videos.length > 0) {
+            showUsedVideos(task.used_videos);
+          }
+          document.getElementById('query-btn').disabled = false;
+          document.getElementById('query-btn').textContent = '重新问答';
+          loadHistory();
+        } else if (task.status === 'failed') {
+          resultBody.textContent = '任务失败';
+          document.getElementById('query-btn').disabled = false;
+          document.getElementById('query-btn').textContent = '重试';
+        } else {
+          resultBody.textContent = '处理中，请稍候...';
+          setTimeout(() => pollQueryResult(taskId, resultBody), 2000);
+        }
+      }
+    })
+    .catch(() => {
+      setTimeout(() => pollQueryResult(taskId, resultBody), 3000);
+    });
+}
+
+function clearResult() {
+  document.getElementById('query-result').style.display = 'none';
+  document.getElementById('query-result-body').textContent = '';
+  document.getElementById('result-used-videos').textContent = '';
+}
+
+// ── 历史记录 ──
+function loadHistory() {
+  fetch('/api/bilibili/query/tasks')
+    .then(r => r.json())
+    .then(data => {
+      const tbody = document.getElementById('history-body');
+      const tasks = data.tasks || [];
+      if (tasks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-2"><small>暂无记录</small></td></tr>';
+        return;
+      }
+      tbody.innerHTML = tasks.map(t => `
+        <tr>
+          <td>${t.id}</td>
+          <td class="text-truncate" style="max-width:200px">${t.user_prompt || ''}</td>
+          <td>${Array.isArray(t.video_ids) ? t.video_ids.length : 0}</td>
+          <td><span class="badge bg-${t.status === 'completed' ? 'success' : t.status === 'failed' ? 'danger' : 'secondary'}">${t.status}</span></td>
+          <td class="small">${(t.created_at || '').slice(5, 16)}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary py-0" onclick="viewHistory(${t.id})">查看</button>
+            <button class="btn btn-sm btn-outline-danger py-0" onclick="deleteQueryTask(${t.id})">删除</button>
+          </td>
+        </tr>
+      `).join('');
+    })
+    .catch(() => {
+      document.getElementById('history-body').innerHTML =
+        '<tr><td colspan="6" class="text-center text-muted py-2"><small>加载失败</small></td></tr>';
+    });
+}
+
+function viewHistory(taskId) {
+  fetch(`/api/bilibili/query/tasks/${taskId}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.success && data.data) {
+        const task = data.data;
+        document.getElementById('query-result').style.display = 'block';
+        document.getElementById('query-result-body').textContent = task.result_text || '(无结果)';
+        document.getElementById('result-video-info').textContent =
+          `(#${task.id}) ${Array.isArray(task.video_ids) ? task.video_ids.length : 0} 个视频`;
+
+        // 显示实际使用的视频
+        const used = task.used_videos || [];
+        if (used.length > 0) {
+          showUsedVideos(used);
+        } else {
+          // 降级：显示原始 video_ids
+          const vids = task.video_ids || [];
+          if (vids.length > 0) showUsedVideos(vids);
+        }
+      }
+    });
+}
+
+function deleteQueryTask(taskId) {
+  if (!confirm(`确定删除问答任务 #${taskId}？`)) return;
+  fetch(`/api/bilibili/query/tasks/${taskId}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => { if (data.success) loadHistory(); });
+}
+
+document.addEventListener('DOMContentLoaded', loadHistory);
+</script>
+{% endblock %}

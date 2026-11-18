@@ -1,0 +1,57 @@
+请根据以下论文信息与摘要，评估其研读价值，并严格输出 JSON：
+
+- arXiv ID: {{arxiv_id}}
+- 标题: {{title}}
+- 作者: {{authors}}
+- 发布时间: {{published}}
+- 主分类: {{primary_category}}
+- 页面数: {{page_count}}
+- 已知有代码/数据: {{has_code_or_data}}
+- 已知代码/数据链接: {{code_data_links}}
+- 已知录用状态: {{is_accepted}}
+
+摘要：
+{{abstract_text}}
+
+请输出如下 JSON 结构（字段名保持一致）：
+{
+  "reading_value": {
+    "score": 0,
+    "level": "high|medium|low",
+    "reason": "一句话解释评分依据"
+  },
+  "research_direction": ["方向1", "方向2"],
+  "problem_and_contribution": {
+    "problem": "该工作要解决什么问题",
+    "core_contribution": ["贡献1", "贡献2"]
+  },
+  "technical_stack": ["模型/方法/理论"],
+  "tooling_and_frameworks": ["框架/库/平台"],
+  "datasets": [
+    {
+      "name": "数据集名称或unknown",
+      "usage": "如何使用或unknown",
+      "confidence": "high|medium|low"
+    }
+  ],
+  "open_source": {
+    "code": "yes|no|unknown",
+    "data": "yes|no|unknown",
+    "known_links": ["url"],
+    "evidence": "依据"
+  },
+  "fit_for_reader": {
+    "target_roles": ["适合人群"],
+    "prerequisites": ["建议先备知识"],
+    "estimated_reading_time": "quick|normal|deep"
+  },
+  "risks_or_limitations": ["潜在局限1", "潜在局限2"],
+  "next_actions": ["下一步1", "下一步2"],
+  "confidence": "high|medium|low"
+}
+
+补充规则：
+1. score 为 0-100 整数。
+2. 若摘要没有提及某项，填 "unknown"，不要猜测。
+3. 所有数组至少给出 1 项；确实未知则填 ["unknown"]。
+4. 只输出 JSON，不要 Markdown。

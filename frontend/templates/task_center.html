@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}任务中心 - InfoSystem{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">🗂️ 任务中心</h2>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm" onclick="loadTasks()">🔄 刷新</button>
+      <a href="/tasks/submit" class="btn btn-primary btn-sm">＋ 提交转换</a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- 筛选 -->
+    <div class="col-lg-2">
+      <div class="card"><div class="card-body py-2">
+        <h6 class="text-muted small">类型</h6>
+        <div id="filter-type" class="d-flex flex-column gap-1 small">
+          <button class="btn btn-sm btn-light text-start" onclick="setFilter('type','')">全部</button>
+          <button class="btn btn-sm btn-light text-start" onclick="setFilter('type','survey')">调研</button>
+          <button class="btn btn-sm btn-light text-start" onclick="setFilter('type','convert')">转换</button>
+          <button class="btn btn-sm btn-light text-start" onclick="setFilter('type','mineru')">mineru</button>
+          <button class="btn btn-sm btn-light text-start" onclick="setFilter('type','translate')">翻译</button>
+          <button class="btn btn-sm btn-light text-start" onclick="setFilter('type','ocr')">OCR</button>
+        </div>
+        <h6 class="text-muted small mt-3">状态</h6>
+        <div id="filter-status" class="d-flex flex-column gap-1 small">
+          <button class="btn btn-sm btn-light text-start" onclick="setFilter('status','')">全部</button>
+          <button class="btn btn-sm btn-light text-start" onclick="setFilter('status','running')">进行中</button>
+          <button class="btn btn-sm btn-light text-start" onclick="setFilter('status','pending')">排队</button>
+          <button class="btn btn-sm btn-light text-start" onclick="setFilter('status','completed')">已完成</button>
+          <button class="btn btn-sm btn-light text-start" onclick="setFilter('status','failed')">失败</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 任务列表 -->
+    <div class="col-lg-10">
+      <div id="task-list"><span class="text-muted small">加载中…</span></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let FILTER = {type: '', status: ''};
+let POLL = new Set();
+
+function setFilter(k, v) { FILTER[k] = v; loadTasks(); }
+
+async function loadTasks() {
+  const box = document.getElementById('task-list');
+  try {
+    const q = new URLSearchParams();
+    if (FILTER.type) q.set('type', FILTER.type);
+    if (FILTER.status) q.set('status', FILTER.status);
+    q.set('limit', '100');
+    const r = await fetch('/api/tasks/center?' + q.toString());
+    const j = await r.json();
+    const tasks = j.tasks || [];
+    if (!tasks.length) { box.innerHTML = '<div class="text-muted small py-4 text-center">暂无任务</div>'; return; }
+    box.innerHTML = '<div class="list-group">' + tasks.map(t => renderRow(t)).join('') + '</div>';
+    tasks.forEach(t => {
+      if (t.status === 'running' || t.status === 'pending') schedulePoll(t.id);
+    });
+  } catch (e) { box.innerHTML = '<span class="text-danger">加载失败: ' + esc(String(e)) + '</span>'; }
+}
+
+function statusBadge(st) {
+  const map = {running:['🟡 进行中','bg-warning text-dark'], pending:['⏸ 排队','bg-secondary'],
+               completed:['✅ 完成','bg-success'], failed:['❌ 失败','bg-danger'], cancelled:['🚫 取消','bg-secondary']};
+  const [txt, cls] = map[st] || [st, 'bg-light text-muted'];
+  return `<span class="badge ${cls}">${txt}</span>`;
+}
+
+function renderRow(t) {
+  const stages = (t.stages || []).map(s => {
+    const ic = {completed:'✅', running:'🔄', failed:'❌', skipped:'⏭', pending:'⏸'}[s.status] || '⏸';
+    return `<span title="${esc(s.label)}: ${esc(s.detail||'')}">${ic}${esc(s.label)}</span>`;
+  }).join(' ');
+  const pct = t.stages && t.stages.length ? Math.round(t.stages.reduce((a,s)=>a+s.progress,0)/t.stages.length) : 0;
+  return `
+    <div class="list-group-item">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="badge bg-light text-dark border">${esc(t.type)}</span>
+          <span class="fw-medium">${esc(t.title || t.id)}</span>
+          ${statusBadge(t.status)}
+          ${t.stages && t.stages.some(s=>s.status==='running') ? `<div class="progress" style="width:120px;height:8px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:${pct}%"></div></div>` : ''}
+          <small class="text-muted">${(t.created_at||'').slice(0,16)}</small>
+        </div>
+        <div class="d-flex gap-1">
+          <button class="btn btn-outline-primary btn-sm py-0 px-1" onclick="showDetail('${t.id}')">👁</button>
+          ${(t.status==='failed'||t.status==='cancelled') ? `<button class="btn btn-outline-success btn-sm py-0 px-1" onclick="retryTask('${t.id}')" title="重试">↻</button>` : ''}
+          ${(t.status==='running'||t.status==='pending') ? `<button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="cancelTask('${t.id}')" title="取消">✕</button>` : ''}
+        </div>
+      </div>
+      <div class="small text-muted mt-1">${stages || '（无阶段）'}</div>
+    </div>`;
+}
+
+async function showDetail(id) {
+  const r = await fetch('/api/tasks/center/' + id);
+  const j = await r.json();
+  if (!j.success) { alert(j.error); return; }
+  const t = j.data;
+  let html = `<div class="mb-2"><span class="badge bg-light text-dark border">${esc(t.type)}</span> ${statusBadge(t.status)}
+      <span class="text-muted small">${esc(t.id)}</span></div>`;
+  html += '<table class="table table-sm small align-middle"><tr><th>阶段</th><th>状态</th><th>进度</th><th>详情</th></tr>';
+  for (const s of t.stages || []) {
+    html += `<tr><td>${esc(s.label)}</td><td>${statusBadge(s.status)}</td><td>${s.progress}%</td>
+      <td>${esc(s.detail||'')}${s.remote_job_id?` <a href="/tasks" class="text-primary">job ${esc(s.remote_job_id)}</a>`:''}${s.error?` <span class="text-danger">${esc(s.error)}</span>`:''}</td></tr>`;
+  }
+  html += '</table>';
+  if (t.result && t.result.papers && t.result.papers.length) {
+    html += `<div class="small text-muted mb-1">结果 ${t.result.papers.length} 篇论文：</div>
+      <div class="border rounded p-2 small" style="max-height:150px;overflow:auto">` +
+      t.result.papers.slice(0, 10).map(p => `<div>${esc(p.title||'')}</div>`).join('') + '</div>';
+  }
+  if (t.result && t.result.pdf_paths && t.result.pdf_paths.length) {
+    html += `<div class="small text-muted mt-2">PDF: ${t.result.pdf_paths.map(p=>`<code>${esc(p.split('/').pop().split('\\\\').pop())}</code>`).join(' ')}</div>`;
+  }
+  if (t.children && t.children.length) {
+    html += '<div class="small text-muted mt-2">子任务: ' + t.children.map(c=>`<code>${esc(c.type)}:${esc(c.status)}</code>`).join(' ') + '</div>';
+  }
+  if (t.error) html += `<div class="text-danger small mt-2">错误: ${esc(t.error)}</div>`;
+  showModal('任务详情', html);
+}
+
+async function retryTask(id) {
+  const r = await fetch('/api/tasks/center/' + id + '/retry', { method: 'POST' });
+  const j = await r.json();
+  alert(j.message || j.error || '');
+  loadTasks();
+}
+async function cancelTask(id) {
+  await fetch('/api/tasks/center/' + id + '/cancel', { method: 'POST' });
+  loadTasks();
+}
+
+function schedulePoll(id) {
+  if (POLL.has(id)) return;
+  POLL.add(id);
+  setTimeout(async () => {
+    POLL.delete(id);
+    const r = await fetch('/api/tasks/center/' + id);
+    const j = await r.json();
+    if (j.success && (j.data.status === 'running' || j.data.status === 'pending')) {
+      loadTasks();
+      schedulePoll(id);
+    } else {
+      loadTasks();
+    }
+  }, 3000);
+}
+
+function showModal(title, body) {
+  let m = document.getElementById('tcModal');
+  if (!m) {
+    m = document.createElement('div'); m.id = 'tcModal'; m.className = 'modal fade';
+    m.innerHTML = `<div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body"></div></div></div>`;
+    document.body.appendChild(m);
+  }
+  m.querySelector('.modal-title').textContent = title;
+  m.querySelector('.modal-body').innerHTML = body;
+  new bootstrap.Modal(m).show();
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+loadTasks();
+</script>
+{% endblock %}
